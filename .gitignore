@@ -1,2 +1,13 @@
 *.class
 *.log
+.idea
+/project/target
+target
+.ivy2/
+.sbt/
+.bloop/
+.metals/
+.vscode/
+project/.bloop/
+project/metals.sbt
+project/project
