@@ -17,6 +17,7 @@
 package palefat.data.mirror.services.writer
 
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
+import palefat.data.mirror.builders.FilterBuilder
 import wvlet.log.LogSupport
 
 class DeltaService(context: WriterContext) extends LogSupport {
@@ -24,6 +25,7 @@ class DeltaService(context: WriterContext) extends LogSupport {
   def write(data: DataFrame): Unit = {
     logger.info(s"Saving data to ${context.path}")
     dfWriter(data).save(context.path)
+    logger.info(s"Saved data to ${context.path}")
   }
 
   def dfWriter(data: DataFrame): DataFrameWriter[Row] = {
@@ -35,16 +37,22 @@ class DeltaService(context: WriterContext) extends LogSupport {
 
     if (context.partitionCols.nonEmpty) {
       logger.info("Saving data with partition")
-
-      val replaceWhere = context.whereClause.replaceFirst("1=1 AND ", "")
-      logger.info(
-        s"Data matching next condition will be replaced: $replaceWhere"
-      )
-
       writer = writer
         .partitionBy(context.partitionCols: _*)
-        .option("replaceWhere", replaceWhere)
-        .mode("overwrite")
+
+      val replaceWhere = FilterBuilder.buildReplaceWherePredicate(
+        data,
+        context.lastPartitionCol,
+        context.whereClause
+      )
+      if (replaceWhere.nonEmpty) {
+        logger.info(
+          s"Data matching next condition will be replaced: $replaceWhere"
+        )
+        writer = writer
+          .option("replaceWhere", replaceWhere)
+          .mode("overwrite")
+      }
     }
     writer
   }

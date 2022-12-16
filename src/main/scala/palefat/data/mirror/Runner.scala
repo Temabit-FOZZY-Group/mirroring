@@ -20,11 +20,12 @@ import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import palefat.data.mirror.handlers.ChangeTrackingHandler
 import palefat.data.mirror.services.SparkService.spark
-import palefat.data.mirror.services.{DeltaTableService, SqlService}
 import palefat.data.mirror.services.databases.{DbService, JdbcPartitionedDecorator, JdbcService}
 import palefat.data.mirror.services.writer._
+import palefat.data.mirror.services.{DeltaTableService, SqlService}
 import wvlet.log.LogSupport
 
+//noinspection ScalaStyle
 object Runner extends LogSupport {
 
   def main(args: Array[String]): Unit = {
@@ -83,7 +84,11 @@ object Runner extends LogSupport {
 
     if (config.zorderby_col.nonEmpty) {
       val replaceWhere =
-        FilterBuilder.buildReplaceWherePredicate(ds, config.lastPartitionCol)
+        FilterBuilder.buildReplaceWherePredicate(
+          ds,
+          config.lastPartitionCol,
+          config.whereClause.toString
+        )
       DeltaTableService.executeZOrdering(
         config.pathToSave,
         config.zorderby_col,

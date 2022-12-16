@@ -16,9 +16,9 @@
 
 package palefat.data.mirror
 
-import palefat.data.mirror.services.writer._
 import palefat.data.mirror.builders.{DataframeBuilderContext, FilterBuilder, SqlBuilder}
 import palefat.data.mirror.services.databases.JdbcContext
+import palefat.data.mirror.services.writer._
 import wvlet.log.LogSupport
 
 import java.time.LocalDate
@@ -147,12 +147,12 @@ case class Config(
   }
 
   if (_whereClause.nonEmpty) {
-    whereClause.append(s" AND ${_whereClause}")
+    whereClause.append(s" AND (${_whereClause})")
   }
 
   val query: String =
     if (_query.isEmpty)
-      SqlBuilder.buildSelectTableSQL(schema, tab, whereClause.toString())
+      SqlBuilder.buildSelectTableSQL(schema, tab, whereClause.toString)
     else
       s"(${_query}) as subq"
 
