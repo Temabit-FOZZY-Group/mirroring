@@ -33,7 +33,7 @@ object ChangeTrackingBuilder {
        |SELECT
        |    T.*, CT.SYS_CHANGE_OPERATION, $primaryKeySelectClause
        |FROM
-       |    [$schema].[$sourceTable] AS T
+       |    [$schema].[$sourceTable] AS T WITH (FORCESEEK)
        |RIGHT OUTER JOIN
        |    CHANGETABLE(CHANGES [$schema].[$sourceTable], $changeTrackingLastVersion) AS CT
        |ON
