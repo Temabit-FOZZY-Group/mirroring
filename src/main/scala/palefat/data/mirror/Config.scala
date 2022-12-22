@@ -117,10 +117,7 @@ case class Config(
   )
 
   require(
-    (if (dtFlt.nonEmpty && writePartitioned)
-       partitionCols.contains(dtFlt)
-     else
-       true) || useMerge || forcePartition,
+    (if (dtFlt.nonEmpty && writePartitioned) partitionCols.contains(dtFlt) else true) || useMerge || forcePartition,
     s"If `dtflt` is different from `partition_col`, you should `use_merge`. ${partitionCols
       .mkString("=")} _ $dtFlt _ ${partitionCols.contains(dtFlt)}"
   )
@@ -151,10 +148,7 @@ case class Config(
   }
 
   val query: String =
-    if (_query.isEmpty)
-      SqlBuilder.buildSelectTableSQL(schema, tab, whereClause.toString)
-    else
-      s"(${_query}) as subq"
+    if (_query.isEmpty) SqlBuilder.buildSelectTableSQL(schema, tab, whereClause.toString) else s"(${_query}) as subq"
 
   def getDataframeBuilderContext: DataframeBuilderContext = {
     DataframeBuilderContext(

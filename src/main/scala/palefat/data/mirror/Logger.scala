@@ -39,10 +39,7 @@ object FlowLogger {
         val record = Record(
           level = logRecord.level.toString,
           sparkApplicationId =
-            if (spark != null)
-              spark.sparkContext.applicationId
-            else
-              "null",
+            if (spark != null) spark.sparkContext.applicationId else "null",
           sparkApplicationAttempt = spark.sparkContext.applicationAttemptId.getOrElse("1"),
           mirrorTaskName = s"mirroring_${schema}__$tab",
           loggerName = logRecord.getLoggerName,
