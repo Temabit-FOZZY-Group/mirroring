@@ -25,7 +25,6 @@ import palefat.data.mirror.services.writer._
 import palefat.data.mirror.services.{DeltaTableService, SqlService}
 import wvlet.log.LogSupport
 
-//noinspection ScalaStyle
 object Runner extends LogSupport {
 
   def main(args: Array[String]): Unit = {
