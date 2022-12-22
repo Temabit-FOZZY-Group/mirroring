@@ -34,14 +34,14 @@ class FilterBuilderSuite extends AnyFunSuite with SparkSessionLender {
 
   test("buildJoinCondition should return String with join clause") {
     val primaryKey: Array[String] = Array("id", "FilId", "id2")
-    val result = FilterBuilder.buildJoinCondition(primaryKey, "T", "CT")
+    val result                    = FilterBuilder.buildJoinCondition(primaryKey, "T", "CT")
     assert(
       result.equals("T.id = CT.id and T.FilId = CT.FilId and T.id2 = CT.id2")
     )
   }
 
   test("buildStrWithoutSpecChars should replace special chars in input") {
-    val input = "test_some*chars&."
+    val input  = "test_some*chars&."
     val result = FilterBuilder.buildStrWithoutSpecChars(input)
     assert(result.equals("test_some_chars__"))
   }
@@ -49,7 +49,7 @@ class FilterBuilderSuite extends AnyFunSuite with SparkSessionLender {
   test(
     "buildStrWithoutSpecChars should replace special chars in input with __"
   ) {
-    val input = "test_some*chars&."
+    val input  = "test_some*chars&."
     val result = FilterBuilder.buildStrWithoutSpecChars(input, "__")
     println(result)
     assert(result.equals("test_some__chars____"))
@@ -71,7 +71,7 @@ class FilterBuilderSuite extends AnyFunSuite with SparkSessionLender {
     })
   }
 
-  test("should BuilderFilter buildReplaceWherePredicate with empty partition") {
+  test("buildReplaceWherePredicate with empty partition") {
     withLocalSparkContext(spark => {
       val partitionCol = ""
       import spark.implicits._
@@ -86,13 +86,46 @@ class FilterBuilderSuite extends AnyFunSuite with SparkSessionLender {
   }
 
   test(
-    "should BuilderFilter buildReplaceWherePredicate with empty partition and null dataframe"
+    "buildReplaceWherePredicate with empty partition and null dataframe"
   ) {
     withLocalSparkContext(spark => {
       val partitionCol = ""
-      val df = null
-      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol)
+      val df           = null
+      val result       = FilterBuilder.buildReplaceWherePredicate(df, partitionCol)
       assert(result == "")
+    })
+  }
+
+  test(
+    "buildReplaceWherePredicate should collect values from dataset to replace them on target and append where clause from user"
+  ) {
+    withLocalSparkContext(spark => {
+      val partitionCol = "id"
+      val whereClause =
+        "(filid = 3171 and cast(operationdate as date) = '2022-12-02')"
+      import spark.implicits._
+      val df = spark.sparkContext
+        .parallelize(
+          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
+        )
+        .toDF("id", "date", "hour", "content")
+      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, whereClause)
+      assert(
+        result == "(filid = 3171 and cast(operationdate as date) = '2022-12-02') AND id in (1, 2)"
+      )
+    })
+  }
+
+  test(
+    "buildReplaceWherePredicate with empty partition and null dataframe and where clause from user should return where clause"
+  ) {
+    withLocalSparkContext(spark => {
+      val partitionCol = ""
+      val df           = null
+      val whereClause =
+        "(filid = 3171 and cast(operationdate as date) = '2022-12-02')"
+      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, whereClause)
+      assert(result == "(filid = 3171 and cast(operationdate as date) = '2022-12-02')")
     })
   }
 

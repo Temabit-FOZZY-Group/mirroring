@@ -70,31 +70,43 @@ object FilterBuilder extends LogSupport {
 
   def buildReplaceWherePredicate(
       ds: DataFrame,
-      partitionCol: String
+      partitionCol: String,
+      whereClause: String = ""
   ): String = {
-    if (ds != null && partitionCol.nonEmpty && !ds.isEmpty) {
-      val replaceWhere = new mutable.StringBuilder
-      replaceWhere.append(s"$partitionCol in (")
+    if (ds != null && partitionCol.nonEmpty) {
+      val replaceWhere = new mutable.StringBuilder(s"$whereClause")
+      if (whereClause.nonEmpty) {
+        replaceWhere.append(" AND ")
+      }
+
       val values = ds
         .select(partitionCol)
         .distinct
         .as[String](Encoders.STRING)
         .filter(x => !x.toLowerCase.contains("null"))
-        .map(partition =>
-          if (
-            !partition
-              .forall(_.isDigit) && partition != "true" && partition != "false"
-          )
-            s"'$partition'"
-          else
-            partition
-        )(Encoders.STRING)
-        .reduce(_ + ", " + _)
-      replaceWhere.append(values)
-      replaceWhere.append(")")
+        .cache()
+
+      if (!values.isEmpty) {
+        replaceWhere.append(s"$partitionCol in (")
+        replaceWhere.append(
+          values
+            .map(partition =>
+              if (
+                !partition
+                  .forall(_.isDigit) && partition != "true" && partition != "false"
+              ) {
+                s"'$partition'"
+              } else {
+                partition
+              }
+            )(Encoders.STRING)
+            .reduce(_ + ", " + _)
+        )
+        replaceWhere.append(")")
+      }
       replaceWhere.toString
     } else {
-      ""
+      whereClause
     }
   }
 
