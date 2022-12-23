@@ -35,12 +35,12 @@ class ChangeTrackingBuilderSuite extends AnyFunSuite with SparkSessionLender {
     "buildSelect should return statement to retrieve data from CHANGETABLE)"
   ) {
     withLocalSparkContext(spark => {
-      val PrimaryKeySelectClause: String = "CT.id as [SYS_CHANGE_PK_id]"
-      val schema: String = "dbo"
-      val sourceTable: String = "sourceTable"
+      val PrimaryKeySelectClause: String    = "CT.id as [SYS_CHANGE_PK_id]"
+      val schema: String                    = "dbo"
+      val sourceTable: String               = "sourceTable"
       val changeTrackingLastVersion: BigInt = 42
-      val primaryKeyOnClause = "T.id = CT.id"
-      val ctCurrentVersion: BigInt = 12345
+      val primaryKeyOnClause                = "T.id = CT.id"
+      val ctCurrentVersion: BigInt          = 12345
       val result = ChangeTrackingBuilder.buildSelect(
         primaryKeySelectClause = PrimaryKeySelectClause,
         schema = schema,
@@ -72,7 +72,7 @@ class ChangeTrackingBuilderSuite extends AnyFunSuite with SparkSessionLender {
     "buildMinValidVersionQuery should return Select to retrieve CHANGE_TRACKING_MIN_VALID_VERSION"
   ) {
     val schema: String = "dbo"
-    val tab: String = "table"
+    val tab: String    = "table"
 
     val result = ChangeTrackingBuilder.buildMinValidVersionQuery(schema, tab)
 
@@ -88,7 +88,7 @@ class ChangeTrackingBuilderSuite extends AnyFunSuite with SparkSessionLender {
     "buildPrimaryKeySelectClause should return list of columns with aliases"
   ) {
     val primaryKey: Array[String] = Array("id", "FilId", "id2")
-    val result = ChangeTrackingBuilder.buildPrimaryKeySelectClause(primaryKey)
+    val result                    = ChangeTrackingBuilder.buildPrimaryKeySelectClause(primaryKey)
     assert(
       result.equals(
         "CT.id as [SYS_CHANGE_PK_id], CT.FilId as [SYS_CHANGE_PK_FilId], CT.id2 as [SYS_CHANGE_PK_id2]"

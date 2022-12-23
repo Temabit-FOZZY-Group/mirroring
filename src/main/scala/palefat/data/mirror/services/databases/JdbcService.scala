@@ -63,11 +63,9 @@ class JdbcService(jdbcContext: JdbcContext) extends DbService with LogSupport {
     try {
       val customSchema = sourceSchema
         .map(row => {
-          if (DatatypeMapping.contains(row.getString(1)))
+          if (DatatypeMapping.contains(row.getString(1))) {
             f"${row.getString(0)} ${DatatypeMapping.getDatatype(row.getString(1))}"
-          else
-            ""
-
+          } else { "" }
         })(Encoders.STRING)
         .filter(row => row.nonEmpty)
         .reduce(_ + ", " + _)
