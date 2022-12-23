@@ -21,9 +21,9 @@ import java.time.LocalDate
 
 class SqlBuilderSuite extends AnyFunSuite {
   test("buildSelectTableSQL should produce select statement") {
-    val table = "TestTable"
+    val table  = "TestTable"
     val schema = "dbo"
-    val where = "test=1"
+    val where  = "test=1"
     val result = SqlBuilder.buildSelectTableSQL(schema, table, where)
     assert(
       result == "(select * from [dbo].[TestTable] with (nolock) where test=1) as subq"
@@ -31,9 +31,9 @@ class SqlBuilderSuite extends AnyFunSuite {
   }
 
   test("buildBetween should generate filter for dates") {
-    val dtFlt = "test=1"
-    val start = LocalDate.parse("2022-01-20")
-    val month = LocalDate.parse("2022-03-27")
+    val dtFlt  = "test=1"
+    val start  = LocalDate.parse("2022-01-20")
+    val month  = LocalDate.parse("2022-03-27")
     val result = SqlBuilder.buildBetween(dtFlt, start, month)
     assert(
       result == " AND test=1 >= '2022-01-20T00:00:00.000' AND test=1 < '2022-03-27T00:00:00.000'"
@@ -41,8 +41,8 @@ class SqlBuilderSuite extends AnyFunSuite {
   }
 
   test("buildDropTableSQL should create DROP TABLE statement") {
-    val table = "Test1Table"
-    val db = "default"
+    val table  = "Test1Table"
+    val db     = "default"
     val result = SqlBuilder.buildDropTableSQL(db, table)
     assert(result == "DROP TABLE IF EXISTS `default`.`Test1Table`;")
   }
@@ -50,19 +50,19 @@ class SqlBuilderSuite extends AnyFunSuite {
   test(
     "buildCreateTableSQL should generate CREATE EXTERNAL TABLE statement"
   ) {
-    val table = "Test1Table"
-    val db = "default"
+    val table    = "Test1Table"
+    val db       = "default"
     val dataPath = "s3a://bucket/folder"
-    val result = SqlBuilder.buildCreateTableSQL(db, table, dataPath)
+    val result   = SqlBuilder.buildCreateTableSQL(db, table, dataPath)
     assert(
       result == "CREATE EXTERNAL TABLE `default`.`Test1Table` USING DELTA LOCATION 's3a://bucket/folder';"
     )
   }
 
   test("buildCreateDbSQL should return CREATE DATABASE statement ") {
-    val db = "default"
+    val db       = "default"
     val location = "s3a://bucket/folder"
-    val result = SqlBuilder.buildCreateDbSQL(db, location)
+    val result   = SqlBuilder.buildCreateDbSQL(db, location)
     assert(
       result == "CREATE DATABASE IF NOT EXISTS `default` LOCATION 's3a://bucket/folder';"
     )

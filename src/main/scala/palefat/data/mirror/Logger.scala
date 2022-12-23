@@ -38,8 +38,7 @@ object FlowLogger {
       override def formatLog(logRecord: LogRecord): String = {
         val record = Record(
           level = logRecord.level.toString,
-          sparkApplicationId =
-            if (spark != null) spark.sparkContext.applicationId else "null",
+          sparkApplicationId = if (spark != null) spark.sparkContext.applicationId else "null",
           sparkApplicationAttempt = spark.sparkContext.applicationAttemptId.getOrElse("1"),
           mirrorTaskName = s"mirroring_${schema}__$tab",
           loggerName = logRecord.getLoggerName,
