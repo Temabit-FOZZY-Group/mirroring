@@ -30,14 +30,14 @@ object Runner extends LogSupport {
   def initConfig(args: Array[String]): Config = {
     val config: Config = ConfigBuilder.build(ConfigBuilder.parse(args))
     logger.debug(s"Parameters parsed: ${config.toString}")
-    logger.info(
-      s"""Creating spark session with configurations: ${spark.conf.getAll
-        .mkString(", ")}"""
-    )
     config
   }
 
   def setSparkContext(config: Config): Unit = {
+    logger.info(
+      s"""Creating spark session with configurations: ${spark.conf.getAll
+        .mkString(", ")}"""
+    )
     spark.sparkContext.setLogLevel(config.logSparkLvl)
     spark.conf.set("spark.sql.session.timeZone", config.timezone)
   }
