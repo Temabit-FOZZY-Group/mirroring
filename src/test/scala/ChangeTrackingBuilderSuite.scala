@@ -54,7 +54,7 @@ class ChangeTrackingBuilderSuite extends AnyFunSuite with SparkSessionLender {
            |SELECT
            |    T.*, CT.SYS_CHANGE_OPERATION, CT.id as [SYS_CHANGE_PK_id]
            |FROM
-           |    [dbo].[sourceTable] AS T
+           |    [dbo].[sourceTable] AS T WITH (FORCESEEK)
            |RIGHT OUTER JOIN
            |    CHANGETABLE(CHANGES [dbo].[sourceTable], 42) AS CT
            |ON

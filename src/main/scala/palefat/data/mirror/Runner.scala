@@ -27,60 +27,51 @@ import wvlet.log.LogSupport
 
 object Runner extends LogSupport {
 
-  def main(args: Array[String]): Unit = {
-
+  def initConfig(args: Array[String]): Config = {
     val config: Config = ConfigBuilder.build(ConfigBuilder.parse(args))
     logger.debug(s"Parameters parsed: ${config.toString}")
+    config
+  }
+
+  def setSparkContext(config: Config): Unit = {
     logger.info(
       s"""Creating spark session with configurations: ${spark.conf.getAll
         .mkString(", ")}"""
     )
-
     spark.sparkContext.setLogLevel(config.logSparkLvl)
     spark.conf.set("spark.sql.session.timeZone", config.timezone)
+  }
 
+  def main(args: Array[String]): Unit = {
     logger.info("Starting mirroring-lib...")
-
-    // Building contexts from the configuration
-    val dataframeBuilderContext      = config.getDataframeBuilderContext
+    val config: Config = initConfig(args)
+    setSparkContext(config)
     val jdbcContext                  = config.getJdbcContext
     val writerContext: WriterContext = config.getWriterContext
+    var query: String                = config.query
+    val changeTrackingHandler        = new ChangeTrackingHandler(config)
 
-    // Getting query to retrieve data
-    var query: String         = config.query
-    val changeTrackingHandler = new ChangeTrackingHandler(config)
     if (config.isChangeTrackingEnabled) {
       query = changeTrackingHandler.query
       writerContext.ctCurrentVersion = changeTrackingHandler.ctCurrentVersion
     }
-
-    // Creating service that will load data
     var jdbcService: DbService = new JdbcService(jdbcContext)
-
     if (config.splitBy.nonEmpty) {
       jdbcService = new JdbcPartitionedDecorator(jdbcService, jdbcContext)
     }
 
-    // Loading data
     val jdbcDF: DataFrame = jdbcService.loadData(query).cache()
     logger.info(s"Number of incoming rows: ${jdbcDF.count}")
-
-    // Building DataFrame, i.e. casting types, adding/renaming columns
-    val ds =
-      DataframeBuilder.buildDataFrame(jdbcDF, dataframeBuilderContext).cache()
+    val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
-
-    // Creating service that will write data to the storage
     var writerService: DeltaService = new DeltaService(writerContext)
+
     if (config.isChangeTrackingEnabled) {
       writerService = new ChangeTrackingService(writerContext)
     } else if (config.useMerge) {
       writerService = new MergeService(writerContext)
     }
-
-    // Writing data
     writerService.write(data = ds)
-
     if (config.zorderby_col.nonEmpty) {
       val replaceWhere =
         FilterBuilder.buildReplaceWherePredicate(
@@ -94,13 +85,9 @@ object Runner extends LogSupport {
         replaceWhere
       )
     }
-
     DeltaTableService.runVacuum(config.pathToSave)
-
     if (config.hiveDb.nonEmpty) {
       SqlService.run(config)
     }
-
   }
-
 }
