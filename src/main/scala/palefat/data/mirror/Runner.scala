@@ -77,6 +77,10 @@ object Runner extends LogSupport {
       writerService = new MergeService(writerContext)
     }
     writerService.write(data = ds)
+    deltaPostProcessing(config, ds)
+  }
+
+  def deltaPostProcessing(config: Config, ds: DataFrame): Unit = {
     if (config.zorderby_col.nonEmpty) {
       val replaceWhere =
         FilterBuilder.buildReplaceWherePredicate(
