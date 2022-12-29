@@ -61,9 +61,9 @@ object Runner extends LogSupport {
     }
 
     val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
-      val jdbcLoaded = jdbcService.loadData(query).cache()
-      logger.info(s"Number of incoming rows: ${jdbcLoaded.count}")
-      jdbcLoaded
+      val jdbcDFTemp = jdbcService.loadData(query).cache()
+      logger.info(s"Number of incoming rows: ${jdbcDFTemp.count}")
+      jdbcDFTemp
     } else {
       changeTrackingHandler.loadChangeTrackingChanges()
     }
