@@ -20,9 +20,9 @@ import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import palefat.data.mirror.handlers.ChangeTrackingHandler
 import palefat.data.mirror.services.SparkService.spark
-import palefat.data.mirror.services.databases.{DbService, JdbcPartitionedDecorator, JdbcService}
-import palefat.data.mirror.services.writer._
 import palefat.data.mirror.services.{DeltaTableService, SqlService}
+import palefat.data.mirror.services.databases.{DbService, JdbcPartitionedDecorator, JdbcService}
+import palefat.data.mirror.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
 import wvlet.log.LogSupport
 
 object Runner extends LogSupport {
@@ -60,8 +60,13 @@ object Runner extends LogSupport {
       jdbcService = new JdbcPartitionedDecorator(jdbcService, jdbcContext)
     }
 
-    val jdbcDF: DataFrame = jdbcService.loadData(query).cache()
-    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
+    val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
+      val jdbcLoaded = jdbcService.loadData(query).cache()
+      logger.info(s"Number of incoming rows: ${jdbcLoaded.count}")
+      jdbcLoaded
+    } else {
+      changeTrackingHandler.loadChangeTrackingChanges()
+    }
     val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
     var writerService: DeltaService = new DeltaService(writerContext)
