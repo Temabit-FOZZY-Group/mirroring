@@ -180,9 +180,6 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
         )
       )
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
-      //val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
-      //jdbcDF.unpersist()
-      //prepareAndMergeDataFrame(jdbcDF, config, primary_key)
       jdbcDF
     } catch {
       case e: Exception => throw e
