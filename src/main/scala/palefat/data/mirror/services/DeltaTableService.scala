@@ -17,7 +17,7 @@
 package palefat.data.mirror.services
 
 import io.delta.tables.DeltaTable
-import SparkService.spark
+import palefat.data.mirror.services.SparkService.spark
 import wvlet.log.LogSupport
 
 object DeltaTableService extends LogSupport {

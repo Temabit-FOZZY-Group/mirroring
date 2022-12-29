@@ -20,9 +20,9 @@ import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import palefat.data.mirror.handlers.ChangeTrackingHandler
 import palefat.data.mirror.services.SparkService.spark
-import palefat.data.mirror.services.{DeltaTableService, SqlService}
 import palefat.data.mirror.services.databases.{DbService, JdbcPartitionedDecorator, JdbcService}
 import palefat.data.mirror.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
+import palefat.data.mirror.services.{DeltaTableService, SqlService}
 import wvlet.log.LogSupport
 
 object Runner extends LogSupport {

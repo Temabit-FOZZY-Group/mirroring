@@ -46,7 +46,7 @@ object ChangeTrackingBuilder {
 
   def buildMinValidVersionQuery(schema: String, sourceTable: String): String = {
     s"""(SELECT CHANGE_TRACKING_MIN_VALID_VERSION(OBJECT_ID('$schema.$sourceTable'))
-         | as CTver) as subq""".stripMargin
+       | as CTver) as subq""".stripMargin
   }
 
   def buildPrimaryKeySelectClause(primaryKey: Array[String]): String = {

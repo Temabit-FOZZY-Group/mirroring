@@ -19,7 +19,7 @@ package palefat.data.mirror.services
 import io.delta.tables.DeltaTable
 import palefat.data.mirror.Config
 import palefat.data.mirror.builders.SqlBuilder
-import SparkService.spark
+import palefat.data.mirror.services.SparkService.spark
 import wvlet.log.LogSupport
 
 object SqlService extends LogSupport {

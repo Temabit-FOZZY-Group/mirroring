@@ -17,7 +17,6 @@
 package palefat.data.mirror.handlers
 
 import io.delta.tables.DeltaTable
-
 import java.sql.DriverManager
 import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.Config
