@@ -18,30 +18,63 @@ package mirroring.handlers
 
 import io.delta.tables.DeltaTable
 import mirroring.Config
+import java.sql.DriverManager
 import org.apache.spark.sql.DataFrame
 import mirroring.services.SparkService.spark
 import mirroring.services.databases.{DbService, JdbcService}
 import wvlet.log.LogSupport
-import mirroring.builders.{ChangeTrackingBuilder, FilterBuilder}
+import mirroring.builders._
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
 
+  private val jdbcContext                  = config.getJdbcContext
+  private val jdbcService: DbService       = new JdbcService(jdbcContext)
+
+  private def getChangeTrackingVersionCustom(jdbcUrl: String,
+                                             query: String,
+                                             parameters: Array[String] = Array[String](),
+                                            ): BigInt = {
+    val connection = DriverManager.getConnection(jdbcUrl)
+    try {
+      val rs = JdbcBuilder.buildJDBCResultSet(
+        connection,
+        query,
+        parameters
+      )
+      rs.next()
+      rs.getLong(1)
+    } catch {
+      case e: Exception => throw e
+    } finally {
+      connection.close()
+    }
+  }
+
   lazy val ctCurrentVersion: BigInt = {
-    val queryGetCTCurrentVersion: String =
-      ChangeTrackingBuilder.currentVersionQuery
     logger.info(s"Querying current change tracking version from the source...")
-    val version = getChangeTrackingVersion(queryGetCTCurrentVersion, config)
+    val version: BigInt = if (config.CTCurrentVersionQuery.isEmpty) {
+      logger.info("Change Tracking: use default query to get CTCurrentVersion")
+      getChangeTrackingVersionDefault(ChangeTrackingBuilder.currentVersionQuery, config)
+    } else {
+      logger.info("Change Tracking: use custom CTCurrentVersionQuery")
+      getChangeTrackingVersionCustom(jdbcService.url, config.CTCurrentVersionQuery)
+    }
     logger.info(s"Current CT version for the MSSQL table: $version")
     version
   }
 
   private lazy val ctMinValidVersion: BigInt = {
-    val queryGetMinValidVersion: String =
-      ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab)
     logger.info(
       s"Querying minimum valid change tracking version from the source..."
     )
-    val version = getChangeTrackingVersion(queryGetMinValidVersion, config)
+    val version: BigInt = if (config.CTMinValidVersionQuery.isEmpty) {
+      logger.info("Change Tracking: use default query to get ChangeTrackingMinValidVersion")
+      getChangeTrackingVersionDefault(ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab), config)
+    } else {
+      logger.info("Change Tracking: use custom CTMinValidVersionQuery")
+      val tab: Array[String] = Array(SqlBuilder.buildSQLObjectName(config.schema, config.tab))
+      getChangeTrackingVersionCustom(jdbcService.url, config.CTMinValidVersionQuery, tab)
+    }
     logger.info(s"Min valid version for the MSSQL table: $version")
     version
   }
@@ -93,7 +126,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
     }
   }
 
-  def getChangeTrackingVersion(query: String, config: Config): BigInt = {
+  def getChangeTrackingVersionDefault(query: String, config: Config): BigInt = {
 
     val jdbcContext            = config.getJdbcContext
     val jdbcService: DbService = new JdbcService(jdbcContext)
@@ -125,5 +158,35 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
       logger.info("Target table doesn't exist yet. Reading data in full ...")
     }
     query
+  }
+
+  def loadChangeTrackingChanges(): DataFrame = {
+    logger.info("Change Tracking: use custom ctChangesQuery")
+    val connection = DriverManager.getConnection(jdbcService.url)
+    try {
+      val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(
+        config.CTChangesQueryParams,
+        config.schema,
+        config.tab,
+        changeTrackingLastVersion.toString(),
+        ctCurrentVersion.toString(),
+      )
+      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(
+        JdbcBuilder.buildJDBCResultSet(
+          connection,
+          config.CTChangesQuery,
+          params
+        )
+      )
+      logger.info(s"Number of incoming rows: ${jdbcDF.count}")
+      //val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
+      //jdbcDF.unpersist()
+      //prepareAndMergeDataFrame(jdbcDF, config, primary_key)
+      jdbcDF
+    } catch {
+      case e: Exception => throw e
+    } finally {
+      connection.close()
+    }
   }
 }

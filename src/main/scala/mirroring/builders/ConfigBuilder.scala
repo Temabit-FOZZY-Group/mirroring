@@ -53,7 +53,11 @@ object ConfigBuilder {
       "primary_key"           -> "",
       "zorderby_col"          -> "",
       "log_lvl"               -> "info",
-      "log_spark_lvl"         -> "WARN"
+      "log_spark_lvl"         -> "WARN",
+      "CTChangesQuery"         -> "",
+      "CTMinValidVersionQuery" -> "",
+      "CTCurrentVersionQuery"  -> "",
+      "CTChangesQueryParams"   -> "",
     )
     arguments.foreach { arg =>
       val key   = arg.split("==")(0)
@@ -96,7 +100,11 @@ object ConfigBuilder {
       _primaryKey = arguments("primary_key"),
       _zorderbyCol = arguments("zorderby_col"),
       logLvl = arguments("log_lvl"),
-      logSparkLvl = arguments("log_spark_lvl")
+      logSparkLvl = arguments("log_spark_lvl"),
+      CTChangesQuery = arguments("CTChangesQuery"),
+      CTMinValidVersionQuery = arguments("CTMinValidVersionQuery"),
+      CTCurrentVersionQuery = arguments("CTCurrentVersionQuery"),
+      _CTChangesQueryParams = arguments("CTChangesQueryParams"),
     )
   }
 

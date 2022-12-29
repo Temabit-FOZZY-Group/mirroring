@@ -61,7 +61,11 @@ case class Config(
     private val _primaryKey: String,
     private val _zorderbyCol: String,
     logLvl: String,
-    logSparkLvl: String
+    logSparkLvl: String,
+    CTChangesQuery: String,
+    CTMinValidVersionQuery: String,
+    CTCurrentVersionQuery: String,
+    _CTChangesQueryParams: String,
 ) extends LogSupport {
 
   FlowLogger.init(schema, tab, logLvl)
@@ -83,6 +87,7 @@ case class Config(
   val primary_key: Array[String]   = stringToArray(_primaryKey)
   val zorderby_col: Array[String]  = stringToArray(_zorderbyCol)
   val partitionCols: Array[String] = stringToArray(_partitionCol)
+  val CTChangesQueryParams: Array[String] = stringToArray(_CTChangesQueryParams)
   val lastPartitionCol: String =
     if (partitionCols.length > 0) partitionCols.last else ""
 

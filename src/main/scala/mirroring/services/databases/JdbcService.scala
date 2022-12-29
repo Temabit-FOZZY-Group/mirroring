@@ -27,7 +27,7 @@ class JdbcService(jdbcContext: JdbcContext) extends DbService with LogSupport {
   val MssqlUser: String     = sys.env.getOrElse("MSSQL_USER", "")
   val MssqlPassword: String = sys.env.getOrElse("MSSQL_PASSWORD", "")
 
-  private lazy val url: String = {
+  override lazy val url: String = {
     // If user/password are passed through environment variables, extract them and append to the url
     val sb = new mutable.StringBuilder(jdbcContext.url)
     if (

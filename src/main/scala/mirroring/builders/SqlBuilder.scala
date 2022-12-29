@@ -22,6 +22,13 @@ import java.time.LocalDate
 
 object SqlBuilder extends LogSupport {
 
+  def buildSQLObjectName(
+      schema: String,
+      table: String
+  ): String = {
+    s"[$schema].[$table]"
+  }
+
   def buildSelectTableSQL(
       schema: String,
       table: String,
