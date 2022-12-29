@@ -41,6 +41,9 @@ jdbcUrl==jdbc:jtds:sqlserver://server\;instance=inst\;domain=dmn\;useNTLMv2=true
 * **zorderby_col**          `optional` Columns on which perform z-ordering, viz [docs](https://docs.delta.io/2.0.0/optimizations-oss.html#z-ordering-multi-dimensional-clustering). Note, the effectiveness of the locality drops with each extra column.
 * **log_lvl**               `optional` Default log level is info. Log level may be `"off, error, warn, info, debug, trace, all"`.
 * **log_spark_lvl**         `optional` Default log level is info. Log level may be `"ALL", "DEBUG", "ERROR", "FATAL", "INFO", "OFF", "TRACE", "WARN"`.
+* **CTChangesQuery**        `optional` custom query to get current Change Tracking version, e.g. `exec dbo.getCTCurrentVersion`.
+* **CTMinValidVersionQuery**`optional` custom query to get minimum valid Change Tracking version, e.g. `exec dbo.getCTMinValidVersionQuery ?`.
+* **CTCurrentVersionQuery**	`optional` custom query to get Change Tracking changes, e.g. `exec dbo.getCTChanges ?, ?, ?`.
 
 # Run unit tests
 `sbt test`
