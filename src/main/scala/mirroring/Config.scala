@@ -63,9 +63,11 @@ case class Config(
     logLvl: String,
     logSparkLvl: String,
     CTChangesQuery: String,
-    CTMinValidVersionQuery: String,
-    CTCurrentVersionQuery: String,
     _CTChangesQueryParams: String,
+    CTMinValidVersionQuery: String,
+    _CTMinValidVersionParams: String,
+    CTCurrentVersionQuery: String,
+    _CTCurrentVersionParams: String,
 ) extends LogSupport {
 
   FlowLogger.init(schema, tab, logLvl)
@@ -88,6 +90,8 @@ case class Config(
   val zorderby_col: Array[String]  = stringToArray(_zorderbyCol)
   val partitionCols: Array[String] = stringToArray(_partitionCol)
   val CTChangesQueryParams: Array[String] = stringToArray(_CTChangesQueryParams)
+  val CTMinValidVersionParams: Array[String] = stringToArray(_CTMinValidVersionParams)
+  val CTCurrentVersionParams: Array[String]    = stringToArray(_CTCurrentVersionParams)
   val lastPartitionCol: String =
     if (partitionCols.length > 0) partitionCols.last else ""
 
@@ -225,9 +229,11 @@ case class Config(
        |log_lvl - $logLvl,
        |log_spark_lvl - $logSparkLvl,
        |CTChangesQuery - $CTChangesQuery,
+       |CTChangesQueryParams - [${CTChangesQueryParams.mkString(", ")}],
        |CTMinValidVersionQuery - $CTMinValidVersionQuery,
+       |CTMinValidVersionParams - [${CTMinValidVersionParams.mkString(", ")}],
        |CTCurrentVersionQuery - $CTCurrentVersionQuery,
-       |CTChangesQueryParams - [${CTChangesQueryParams.mkString(", ")}]
+       |CTCurrentVersionParams - [${CTCurrentVersionParams.mkString(", ")}]
        |""".stripMargin
 
   }

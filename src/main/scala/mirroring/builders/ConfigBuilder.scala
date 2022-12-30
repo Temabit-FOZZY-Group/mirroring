@@ -58,6 +58,8 @@ object ConfigBuilder {
       "CTMinValidVersionQuery" -> "",
       "CTCurrentVersionQuery"  -> "",
       "CTChangesQueryParams"   -> "",
+      "CT_min_valid_version_params" -> "",
+      "CT_current_version_params"   -> "",
     )
     arguments.foreach { arg =>
       val key   = arg.split("==")(0)
@@ -105,6 +107,8 @@ object ConfigBuilder {
       CTMinValidVersionQuery = arguments("CTMinValidVersionQuery"),
       CTCurrentVersionQuery = arguments("CTCurrentVersionQuery"),
       _CTChangesQueryParams = arguments("CTChangesQueryParams"),
+      _CTMinValidVersionParams = arguments("CT_min_valid_version_params"),
+      _CTCurrentVersionParams = arguments("CT_current_version_params"),
     )
   }
 

@@ -57,7 +57,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
       getChangeTrackingVersionDefault(ChangeTrackingBuilder.currentVersionQuery, config)
     } else {
       logger.info("Change Tracking: use custom CTCurrentVersionQuery")
-      getChangeTrackingVersionCustom(jdbcService.url, config.CTCurrentVersionQuery)
+      getChangeTrackingVersionCustom(jdbcService.url, config.CTCurrentVersionQuery, config.CTCurrentVersionParams)
     }
     logger.info(s"Current CT version for the MSSQL table: $version")
     version
@@ -72,8 +72,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
       getChangeTrackingVersionDefault(ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab), config)
     } else {
       logger.info("Change Tracking: use custom CTMinValidVersionQuery")
-      val tab: Array[String] = Array(SqlBuilder.buildSQLObjectName(config.schema, config.tab))
-      getChangeTrackingVersionCustom(jdbcService.url, config.CTMinValidVersionQuery, tab)
+      getChangeTrackingVersionCustom(jdbcService.url, config.CTMinValidVersionQuery, config.CTMinValidVersionParams)
     }
     logger.info(s"Min valid version for the MSSQL table: $version")
     version
