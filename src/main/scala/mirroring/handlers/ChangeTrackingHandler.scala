@@ -107,7 +107,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
     ctCurrentVersion = ctCurrentVersion
   )
 
-  private lazy val changeTrackingLastVersion: BigInt = {
+  lazy val changeTrackingLastVersion: BigInt = {
     var changeTrackingLastVersion: BigInt = -1
     try {
       changeTrackingLastVersion = ctDeltaVersion
@@ -157,32 +157,5 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
       logger.info("Target table doesn't exist yet. Reading data in full ...")
     }
     query
-  }
-
-  def loadChangeTrackingChanges(): DataFrame = {
-    logger.info("Change Tracking: use custom ctChangesQuery")
-    val connection = DriverManager.getConnection(jdbcService.url)
-    try {
-      val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(
-        config.CTChangesQueryParams,
-        config.schema,
-        config.tab,
-        changeTrackingLastVersion.toString(),
-        ctCurrentVersion.toString(),
-      )
-      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(
-        JdbcBuilder.buildJDBCResultSet(
-          connection,
-          config.CTChangesQuery,
-          params
-        )
-      )
-      logger.info(s"Number of incoming rows: ${jdbcDF.count}")
-      jdbcDF
-    } catch {
-      case e: Exception => throw e
-    } finally {
-      connection.close()
-    }
   }
 }

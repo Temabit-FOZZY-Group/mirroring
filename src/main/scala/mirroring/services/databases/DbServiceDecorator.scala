@@ -20,9 +20,9 @@ import org.apache.spark.sql.{DataFrame, DataFrameReader}
 
 abstract class DbServiceDecorator(decoratedService: DbService) extends DbService {
 
-  override def dfReader: DataFrameReader = decoratedService.dfReader
+  def dfReader: DataFrameReader = decoratedService.dfReader
 
-  override def loadData(query: String): DataFrame = {
+  def loadData(query: String): DataFrame = {
     decoratedService.loadData(query)
   }
 

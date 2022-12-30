@@ -79,12 +79,12 @@ class JdbcService(jdbcContext: JdbcContext) extends DbService with LogSupport {
     }
   }
 
-  override def loadData(_query: String): DataFrame = {
+  def loadData(_query: String): DataFrame = {
     logger.info(s"Reading data with query: ${_query}")
     dfReader.option("dbtable", _query).load()
   }
 
-  override def dfReader: DataFrameReader = {
+  def dfReader: DataFrameReader = {
     spark.read
       .format("jdbc")
       .option("url", url)
