@@ -20,7 +20,7 @@ import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import palefat.data.mirror.handlers.ChangeTrackingHandler
 import palefat.data.mirror.services.SparkService.spark
-import palefat.data.mirror.services.databases.{DbService, JdbcPartitionedDecorator, JdbcService}
+import palefat.data.mirror.services.databases.{DbService, JdbcCTService, JdbcPartitionedDecorator, JdbcService}
 import palefat.data.mirror.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
 import palefat.data.mirror.services.{DeltaTableService, SqlService}
 import wvlet.log.LogSupport
@@ -55,22 +55,29 @@ object Runner extends LogSupport {
       query = changeTrackingHandler.query
       writerContext.ctCurrentVersion = changeTrackingHandler.ctCurrentVersion
     }
-    var jdbcService: DbService = new JdbcService(jdbcContext)
-    if (config.splitBy.nonEmpty) {
-      jdbcService = new JdbcPartitionedDecorator(jdbcService, jdbcContext)
-    }
 
     val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
+      var jdbcService: DbService = new JdbcService(jdbcContext)
+      if (config.splitBy.nonEmpty) {
+        jdbcService = new JdbcPartitionedDecorator(jdbcService, jdbcContext)
+      }
       val jdbcDFTemp = jdbcService.loadData(query).cache()
       logger.info(s"Number of incoming rows: ${jdbcDFTemp.count}")
       jdbcDFTemp
     } else {
-      changeTrackingHandler.loadChangeTrackingChanges()
+      logger.info("Change Tracking: use custom ctChangesQuery")
+      val jdbcCTService: DbService = new JdbcCTService(
+        config,
+        changeTrackingHandler.changeTrackingLastVersion,
+        changeTrackingHandler.ctCurrentVersion,
+        jdbcContext
+      )
+      jdbcCTService.loadData()
     }
     val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
-    var writerService: DeltaService = new DeltaService(writerContext)
 
+    var writerService: DeltaService = new DeltaService(writerContext)
     if (config.isChangeTrackingEnabled) {
       writerService = new ChangeTrackingService(writerContext)
     } else if (config.useMerge) {

@@ -18,9 +18,13 @@ package palefat.data.mirror.services.databases
 
 import org.apache.spark.sql.{DataFrame, DataFrameReader}
 
+
 trait DbService {
   lazy val url: String = ""
   def dfReader: DataFrameReader
 
   def loadData(query: String): DataFrame
+
+  def loadData(): DataFrame = loadData("")
 }
+
