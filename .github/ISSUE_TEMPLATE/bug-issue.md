@@ -44,5 +44,5 @@ Include any additional details that may be useful for diagnosing the problem her
 The Delta Flow Community encourages bug fix contributions. Would you or another member of your organization be willing to contribute a fix for this bug to the Delta Flow code base?
 
 - [ ] Yes. I can contribute a fix for this bug independently.
-- [ ] Yes. I would be willing to contribute a fix for this bug with guidance from the Delta Lake community.
+- [ ] Yes. I would be willing to contribute a fix for this bug with guidance from the Delta Flow community.
 - [ ] No. I cannot contribute a bug fix at this time.
