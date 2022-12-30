@@ -223,7 +223,11 @@ case class Config(
        |primary_key - [${primary_key.mkString(", ")}],
        |zorderby_col - [${zorderby_col.mkString(", ")}],
        |log_lvl - $logLvl,
-       |log_spark_lvl - $logSparkLvl
+       |log_spark_lvl - $logSparkLvl,
+       |CTChangesQuery - $CTChangesQuery,
+       |CTMinValidVersionQuery - $CTMinValidVersionQuery,
+       |CTCurrentVersionQuery - $CTCurrentVersionQuery,
+       |CTChangesQueryParams - [${CTChangesQueryParams.mkString(", ")}]
        |""".stripMargin
 
   }
