@@ -25,9 +25,9 @@ import wvlet.log.LogSupport
 class JdbcCTService(config: Config,
                     changeTrackingLastVersion: BigInt,
                     ctCurrentVersion: BigInt,
-                    jdbcContext: JdbcContext) extends JdbcService(jdbcContext) with LogSupport {
+                    jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContext) with LogSupport {
 
-  override def loadData(): DataFrame = {
+  def loadData(): DataFrame = {
     val connection = DriverManager.getConnection(url)
     try {
       val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(

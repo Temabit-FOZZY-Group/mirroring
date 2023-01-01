@@ -22,13 +22,13 @@ import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.Config
 import palefat.data.mirror.builders._
 import palefat.data.mirror.services.SparkService.spark
-import palefat.data.mirror.services.databases.{DbService, JdbcService}
+import palefat.data.mirror.services.databases.JdbcService
 import wvlet.log.LogSupport
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
 
   private val jdbcContext                  = config.getJdbcContext
-  private val jdbcService: DbService       = new JdbcService(jdbcContext)
+  private val jdbcService: JdbcService     = new JdbcService(jdbcContext)
 
   private def getChangeTrackingVersionCustom(jdbcUrl: String,
                                              query: String,
@@ -127,9 +127,9 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
 
   def getChangeTrackingVersionDefault(query: String, config: Config): BigInt = {
 
-    val jdbcContext            = config.getJdbcContext
-    val jdbcService: DbService = new JdbcService(jdbcContext)
-    val jdbcDF: DataFrame      = jdbcService.loadData(query).cache()
+    val jdbcContext              = config.getJdbcContext
+    val jdbcService: JdbcService = new JdbcService(jdbcContext)
+    val jdbcDF: DataFrame        = jdbcService.loadData(query).cache()
 
     var version: BigInt = BigInt(0)
 

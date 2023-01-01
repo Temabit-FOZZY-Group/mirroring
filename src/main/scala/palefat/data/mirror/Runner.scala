@@ -20,7 +20,7 @@ import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import palefat.data.mirror.handlers.ChangeTrackingHandler
 import palefat.data.mirror.services.SparkService.spark
-import palefat.data.mirror.services.databases.{DbService, JdbcCTService, JdbcPartitionedDecorator, JdbcService}
+import palefat.data.mirror.services.databases.{JdbcCTService, JdbcPartitionedService, JdbcService}
 import palefat.data.mirror.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
 import palefat.data.mirror.services.{DeltaTableService, SqlService}
 import wvlet.log.LogSupport
@@ -57,16 +57,16 @@ object Runner extends LogSupport {
     }
 
     val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
-      var jdbcService: DbService = new JdbcService(jdbcContext)
+      val jdbcService: JdbcService = new JdbcService(jdbcContext)
       if (config.splitBy.nonEmpty) {
-        jdbcService = new JdbcPartitionedDecorator(jdbcService, jdbcContext)
+        val jdbcService = new JdbcPartitionedService(jdbcContext)
       }
       val jdbcDFTemp = jdbcService.loadData(query).cache()
       logger.info(s"Number of incoming rows: ${jdbcDFTemp.count}")
       jdbcDFTemp
     } else {
       logger.info("Change Tracking: use custom ctChangesQuery")
-      val jdbcCTService: DbService = new JdbcCTService(
+      val jdbcCTService: JdbcCTService = new JdbcCTService(
         config,
         changeTrackingHandler.changeTrackingLastVersion,
         changeTrackingHandler.ctCurrentVersion,
