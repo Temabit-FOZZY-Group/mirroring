@@ -54,24 +54,21 @@ object Runner extends LogSupport {
     if (config.isChangeTrackingEnabled) {
       query = changeTrackingHandler.query
       writerContext.ctCurrentVersion = changeTrackingHandler.ctCurrentVersion
+      jdbcContext._ctCurrentVersion = Some(changeTrackingHandler.ctCurrentVersion)
+      jdbcContext._changeTrackingLastVersion = Some(changeTrackingHandler.changeTrackingLastVersion)
     }
 
     val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
-      val jdbcService: JdbcService = new JdbcService(jdbcContext)
+      var jdbcService: JdbcService = new JdbcService(jdbcContext)
       if (config.splitBy.nonEmpty) {
-        val jdbcService = new JdbcPartitionedService(jdbcContext)
+        jdbcService = new JdbcPartitionedService(jdbcContext)
       }
       val jdbcDFTemp = jdbcService.loadData(query).cache()
       logger.info(s"Number of incoming rows: ${jdbcDFTemp.count}")
       jdbcDFTemp
     } else {
       logger.info("Change Tracking: use custom ctChangesQuery")
-      val jdbcCTService: JdbcCTService = new JdbcCTService(
-        config,
-        changeTrackingHandler.changeTrackingLastVersion,
-        changeTrackingHandler.ctCurrentVersion,
-        jdbcContext
-      )
+      val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
       jdbcCTService.loadData()
     }
     val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
