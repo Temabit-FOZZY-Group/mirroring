@@ -49,4 +49,28 @@ class JdbcCTService(jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContex
       connection.close()
     }
   }
+
+  /**
+   * Returns value from the first row, first column of the result set as BigInt.
+   *
+   * Use to get Change Tracking version from the result set.
+   */
+  def getChangeTrackingVersionCustom(query: String,
+                                     parameters: Array[String] = Array[String](),
+                                    ): BigInt = {
+    val connection = DriverManager.getConnection(url)
+    try {
+      val rs = JdbcBuilder.buildJDBCResultSet(
+        connection,
+        query,
+        parameters
+      )
+      rs.next()
+      rs.getLong(1)
+    } catch {
+      case e: Exception => throw e
+    } finally {
+      connection.close()
+    }
+  }
 }

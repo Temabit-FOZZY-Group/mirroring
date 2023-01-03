@@ -17,38 +17,18 @@
 package palefat.data.mirror.handlers
 
 import io.delta.tables.DeltaTable
-import java.sql.DriverManager
+
 import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.Config
 import palefat.data.mirror.builders._
 import palefat.data.mirror.services.SparkService.spark
-import palefat.data.mirror.services.databases.JdbcService
+import palefat.data.mirror.services.databases.{JdbcCTService, JdbcService}
 import wvlet.log.LogSupport
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
 
-  private val jdbcContext                  = config.getJdbcContext
-  private val jdbcService: JdbcService     = new JdbcService(jdbcContext)
-
-  private def getChangeTrackingVersionCustom(jdbcUrl: String,
-                                             query: String,
-                                             parameters: Array[String] = Array[String](),
-                                            ): BigInt = {
-    val connection = DriverManager.getConnection(jdbcUrl)
-    try {
-      val rs = JdbcBuilder.buildJDBCResultSet(
-        connection,
-        query,
-        parameters
-      )
-      rs.next()
-      rs.getLong(1)
-    } catch {
-      case e: Exception => throw e
-    } finally {
-      connection.close()
-    }
-  }
+  private lazy val jdbcContext                  = config.getJdbcContext
+  private lazy val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
 
   lazy val ctCurrentVersion: BigInt = {
     logger.info(s"Querying current change tracking version from the source...")
@@ -57,7 +37,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
       getChangeTrackingVersionDefault(ChangeTrackingBuilder.currentVersionQuery, config)
     } else {
       logger.info("Change Tracking: use custom CTCurrentVersionQuery")
-      getChangeTrackingVersionCustom(jdbcService.url, config.CTCurrentVersionQuery, config.CTCurrentVersionParams)
+      jdbcCTService.getChangeTrackingVersionCustom(config.CTCurrentVersionQuery, config.CTCurrentVersionParams)
     }
     logger.info(s"Current CT version for the MSSQL table: $version")
     version
@@ -72,7 +52,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
       getChangeTrackingVersionDefault(ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab), config)
     } else {
       logger.info("Change Tracking: use custom CTMinValidVersionQuery")
-      getChangeTrackingVersionCustom(jdbcService.url, config.CTMinValidVersionQuery, config.CTMinValidVersionParams)
+      jdbcCTService.getChangeTrackingVersionCustom(config.CTMinValidVersionQuery, config.CTMinValidVersionParams)
     }
     logger.info(s"Min valid version for the MSSQL table: $version")
     version
@@ -127,7 +107,6 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
 
   def getChangeTrackingVersionDefault(query: String, config: Config): BigInt = {
 
-    val jdbcContext              = config.getJdbcContext
     val jdbcService: JdbcService = new JdbcService(jdbcContext)
     val jdbcDF: DataFrame        = jdbcService.loadData(query).cache()
 
@@ -140,7 +119,6 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
           .getLong(0)
       )
     }
-
     version
   }
 
