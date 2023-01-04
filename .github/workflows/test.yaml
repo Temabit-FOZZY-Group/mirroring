@@ -1,7 +1,7 @@
 name: "Delta Flow Tests"
 on: [push, pull_request]
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -23,4 +23,5 @@ jobs:
             ~/.sbt
             ~/.ivy2
             ~/.cache/coursier
+          key: build-and-test-scala
       - run: ./build/sbt test
