@@ -44,7 +44,8 @@ jdbcUrl==jdbc:jtds:sqlserver://server\;instance=inst\;domain=dmn\;useNTLMv2=true
 
 # Run unit tests
 `sbt test`
-
+`sbt compile`
+`sbt package`
 # Scalastyle usage
 `sbt scalastyle`
 `sbt headerCreate`

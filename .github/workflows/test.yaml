@@ -2,28 +2,20 @@ name: "Delta Flow Tests"
 on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        scala: [2.12.10]
-    env:
-      SCALA_VERSION: ${{ matrix.scala }}
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: install java
-        uses: actions/setup-java@v3
+      - uses: actions/checkout@v2
+      - name: Run tests
+        run: sbt coverage test
+      - name: Coverage Report
+        run: sbt coverageReport
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
         with:
-          distribution: "zulu"
-          java-version: "8"
-      - name: Cache Scala, SBT
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2
-            ~/.cache/coursier
-          # Change the key if dependencies are changed. For each key, GitHub Actions will cache the
-          # the above directories when we use the key for the first time. After that, each run will
-          # just use the cache. The cache is immutable so we need to use a new key when trying to
-          # cache new stuff.
-          key: delta-sbt-cache-spark3.2-scala${{ matrix.scala }}
+          fail_ci_if_error: true
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Formatting
+        run: sbt scalafmtSbtCheck scalafmtCheck test:scalafmtCheck
