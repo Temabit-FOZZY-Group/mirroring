@@ -23,5 +23,4 @@ jobs:
             ~/.sbt
             ~/.ivy2
             ~/.cache/coursier
-          key: delta-sbt-cache-spark3.2-scala${{ matrix.scala }}
       - run: ./build/sbt test
