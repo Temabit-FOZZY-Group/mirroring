@@ -25,15 +25,9 @@ object SqlBuilder extends LogSupport {
   def buildSelectTableSQL(
       schema: String,
       table: String,
-      query: String,
       where: String
   ): String = {
-    if (query.isEmpty) {
-      s"(select * from [$schema].[$table] with (nolock) where $where) as subq"
-    }
-    else {
-      s"($query where $where) as subq"
-    }
+    s"(select * from [$schema].[$table] with (nolock) where $where) as subq"
   }
 
   def buildBetween(
