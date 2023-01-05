@@ -134,11 +134,6 @@ case class Config(
     s"Parameter `primary_key` should be specified if `isChangeTrackingEnabled` is true."
   )
 
-  require(
-    !(_query.nonEmpty && _whereClause.nonEmpty),
-    "Parameter `query` and `whereClause` can't be both specified."
-  )
-
   val whereClause = new mutable.StringBuilder("1=1")
 
   if (dtFlt.nonEmpty) {
@@ -150,8 +145,8 @@ case class Config(
   }
 
   val query: String =
-    if (_query.isEmpty) {
-      SqlBuilder.buildSelectTableSQL(schema, tab, whereClause.toString)
+    if (_query.isEmpty || (_query.nonEmpty && _whereClause.nonEmpty)) {
+      SqlBuilder.buildSelectTableSQL(schema, tab, _query, whereClause.toString)
     } else { s"(${_query}) as subq" }
 
   def getDataframeBuilderContext: DataframeBuilderContext = {
