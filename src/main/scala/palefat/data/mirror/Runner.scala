@@ -77,7 +77,7 @@ object Runner extends LogSupport {
         FilterBuilder.buildReplaceWherePredicate(
           ds,
           config.lastPartitionCol,
-          config.whereClause.toString
+          ""
         )
       DeltaTableService.executeZOrdering(
         config.pathToSave,
