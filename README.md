@@ -43,20 +43,20 @@ jdbcUrl==jdbc:jtds:sqlserver://server\;instance=inst\;domain=dmn\;useNTLMv2=true
 * **zorderby_col**          `optional` Columns on which perform z-ordering, viz [docs](https://docs.delta.io/2.0.0/optimizations-oss.html#z-ordering-multi-dimensional-clustering). Note, the effectiveness of the locality drops with each extra column.
 * **log_lvl**               `optional` Default log level is info. Log level may be `"off, error, warn, info, debug, trace, all"`.
 * **log_spark_lvl**         `optional` Default log level is info. Log level may be `"ALL", "DEBUG", "ERROR", "FATAL", "INFO", "OFF", "TRACE", "WARN"`.
-* **CT_changes_query**            `optional` Custom query to get current Change Tracking version, e.g. `exec dbo.getCTCurrentVersion`.
-* **CT_changes_query_params**     `optional` Parameters for `CT_changes_query`.
-* **CT_min_valid_version_query**  `optional` Custom query to get minimum valid Change Tracking version, e.g. `exec dbo.getCTMinValidVersionQuery ?`.
-* **CT_min_valid_version_params** `optional` Parameters for `CT_min_valid_version_query`.
-* **CT_current_version_query**	  `optional` custom query to get Change Tracking changes, e.g. `exec dbo.getCTChanges ?, ?, ?`.
-* **CT_current_version_params**	  `optional` Parameters for `CT_current_version_query`.
+* **ct_changes_query**            `optional` Custom query to get current Change Tracking version, e.g. `exec dbo.getCTCurrentVersion`.
+* **ct_changes_query_params**     `optional` Parameters for `ct_changes_query`.
+* **ct_min_valid_version_query**  `optional` Custom query to get minimum valid Change Tracking version, e.g. `exec dbo.getCTMinValidVersionQuery ?`.
+* **ct_min_valid_version_params** `optional` Parameters for `ct_min_valid_version_query`.
+* **ct_current_version_query**	  `optional` custom query to get Change Tracking changes, e.g. `exec dbo.getCTChanges ?, ?, ?`.
+* **ct_current_version_params**	  `optional` Parameters for `ct_current_version_query`.
 
 ### Reserved words for parameters
 
-Arguments `CT_changes_query_params`, `CT_min_valid_version_params` and `CT_current_version_params` have reserved parameters which have default behaviour:
+Arguments `ct_changes_query_params`, `ct_min_valid_version_params` and `ct_current_version_params` have reserved parameters which have default behaviour:
 
   - `defaultSQLTable` to generate and to pass mirrored object as `[schema].[table]`
   - `queryCTLastVersion` to query CT version from the SQL server (current CT version of the delta table or determined as mentioned in the previous part)
-  - `queryCTCurrentVersion` to query current CT version from the SQL server (determined as `CHANGE_TRACKING_CURRENT_VERSION()` or from `CTCurrentVersionQuery` if provided)
+  - `queryCTCurrentVersion` to query current CT version from the SQL server (determined as `CHANGE_TRACKING_CURRENT_VERSION()` or from `ct_current_version_query` if provided)
 
 # Run unit tests
 `sbt test`

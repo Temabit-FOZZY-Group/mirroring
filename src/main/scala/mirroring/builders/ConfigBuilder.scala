@@ -54,12 +54,12 @@ object ConfigBuilder {
       "zorderby_col"          -> "",
       "log_lvl"               -> "info",
       "log_spark_lvl"         -> "WARN",
-      "CT_changes_query"            -> "",
-      "CT_changes_query_params"     -> "",
-      "CT_min_valid_version_query"  -> "",
-      "CT_min_valid_version_params" -> "",
-      "CT_current_version_query"    -> "",
-      "CT_current_version_params"   -> "",
+      "ct_changes_query"            -> "",
+      "ct_changes_query_params"     -> "",
+      "ct_min_valid_version_query"  -> "",
+      "ct_min_valid_version_params" -> "",
+      "ct_current_version_query"    -> "",
+      "ct_current_version_params"   -> "",
     )
     arguments.foreach { arg =>
       val key   = arg.split("==")(0)
@@ -103,12 +103,12 @@ object ConfigBuilder {
       _zorderbyCol = arguments("zorderby_col"),
       logLvl = arguments("log_lvl"),
       logSparkLvl = arguments("log_spark_lvl"),
-      CTChangesQuery = arguments("CT_changes_query"),
-      _CTChangesQueryParams = arguments("CT_changes_query_params"),
-      CTMinValidVersionQuery = arguments("CT_min_valid_version_query"),
-      _CTMinValidVersionParams = arguments("CT_min_valid_version_params"),
-      CTCurrentVersionQuery = arguments("CT_current_version_query"),
-      _CTCurrentVersionParams = arguments("CT_current_version_params"),
+      CTChangesQuery = arguments("ct_changes_query"),
+      _CTChangesQueryParams = arguments("ct_changes_query_params"),
+      CTMinValidVersionQuery = arguments("ct_min_valid_version_query"),
+      _CTMinValidVersionParams = arguments("ct_min_valid_version_params"),
+      CTCurrentVersionQuery = arguments("ct_current_version_query"),
+      _CTCurrentVersionParams = arguments("ct_current_version_params"),
     )
   }
 
