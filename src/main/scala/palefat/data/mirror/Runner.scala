@@ -46,7 +46,7 @@ object Runner extends LogSupport {
     logger.info("Starting mirroring-lib...")
     val config: Config = initConfig(args)
     setSparkContext(config)
-    val jdbcContext                  = config.getJdbcContext
+    val jdbcContext = config.getJdbcContext
     val writerContext: WriterContext = config.getWriterContext
     var query: String                = config.query
     val changeTrackingHandler        = new ChangeTrackingHandler(config)
