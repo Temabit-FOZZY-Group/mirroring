@@ -31,11 +31,6 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage1.xml,./coverage2.xml
-          flags: unittests
-          name: codecov-mirroring
-          verbose: true
   lint:
     runs-on: ubuntu-20.04
     steps:

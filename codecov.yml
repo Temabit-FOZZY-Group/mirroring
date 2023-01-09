@@ -1,0 +1,16 @@
+coverage:
+  status:
+    project:
+      default: off
+      backend:
+        target: 50%
+        flags:
+          - backend
+
+flags:
+  backend:
+    paths:
+      - src/main/scala/mirroring
+  tests:
+    paths:
+      - src/tests/scala/mirroring
