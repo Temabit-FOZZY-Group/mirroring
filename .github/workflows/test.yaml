@@ -3,6 +3,11 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        scala: [ 2.12.10, 2.12.15, 2.13.5 ]
+    env:
+      SCALA_VERSION: ${{ matrix.scala }}
     steps:
       - uses: actions/checkout@v3
       - name: install java
@@ -17,6 +22,11 @@ jobs:
             ~/.sbt
             ~/.ivy2
             ~/.cache/coursier
+            # Change the key if dependencies are changed. For each key, GitHub Actions will cache the
+            # the above directories when we use the key for the first time. After that, each run will
+            # just use the cache. The cache is immutable so we need to use a new key when trying to
+            # cache new stuff.
+            key: delta-sbt-cache-spark3.2-scala${{ matrix.scala }}
       - name: Run tests
         run: sbt coverage test
       - name: Coverage Report
