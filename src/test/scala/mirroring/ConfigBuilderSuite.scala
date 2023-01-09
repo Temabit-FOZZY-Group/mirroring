@@ -19,7 +19,6 @@ package mirroring
 import mirroring.builders.ConfigBuilder
 import org.scalatest.funsuite.AnyFunSuite
 
-
 class ConfigBuilderSuite extends AnyFunSuite {
   test(
     "parse invocation should return a Map[String, String] with parsed program arguments"

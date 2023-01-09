@@ -116,8 +116,8 @@ class FilterBuilderSuite extends AnyFunSuite {
   ) {
     val partitionCol = ""
     val df           = null
-    val whereClause = "(filid = 3171 and cast(operationdate as date) = '2022-12-02')"
-    val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, whereClause)
+    val whereClause  = "(filid = 3171 and cast(operationdate as date) = '2022-12-02')"
+    val result       = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, whereClause)
     assert(result == "(filid = 3171 and cast(operationdate as date) = '2022-12-02')")
   }
 
