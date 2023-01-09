@@ -16,7 +16,7 @@
 
 package mirroring
 
-import mirroring.services.SparkService.spark
+import mirroring.services.SparkService
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogFormatter.appendStackTrace
 import wvlet.log.{LogFormatter, LogLevel, LogRecord, Logger}
@@ -36,6 +36,7 @@ object FlowLogger {
     Logger.init
     object CustomLogFormatter extends LogFormatter {
       override def formatLog(logRecord: LogRecord): String = {
+        val spark = SparkService.spark
         val record = Record(
           level = logRecord.level.toString,
           sparkApplicationId = if (spark != null) spark.sparkContext.applicationId else "null",
