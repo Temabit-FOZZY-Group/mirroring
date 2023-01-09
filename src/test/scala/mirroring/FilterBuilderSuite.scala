@@ -68,7 +68,7 @@ class FilterBuilderSuite extends AnyFunSuite with SparkSessionLender {
           Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
         )
         .toDF("id", "date", "hour", "content")
-      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol)
+      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
       assert(result == "id in (1, 2)")
     })
   }
@@ -82,7 +82,7 @@ class FilterBuilderSuite extends AnyFunSuite with SparkSessionLender {
           Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
         )
         .toDF("id", "date", "hour", "content")
-      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol)
+      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
       assert(result == "")
     })
   }
@@ -93,7 +93,7 @@ class FilterBuilderSuite extends AnyFunSuite with SparkSessionLender {
     withLocalSparkContext(spark => {
       val partitionCol = ""
       val df           = null
-      val result       = FilterBuilder.buildReplaceWherePredicate(df, partitionCol)
+      val result       = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
       assert(result == "")
     })
   }

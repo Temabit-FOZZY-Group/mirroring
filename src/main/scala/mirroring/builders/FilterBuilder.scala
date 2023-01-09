@@ -42,8 +42,8 @@ object FilterBuilder extends LogSupport {
   ): String = {
     val conditions: mutable.ArrayBuilder[String] = Array.newBuilder[String]
     lazy val partitionFilter =
-      FilterBuilder.buildReplaceWherePredicate(ds, partitionCol)
-    if (partitionCol.nonEmpty) {
+      FilterBuilder.buildReplaceWherePredicate(ds, partitionCol, "")
+    if (partitionCol.nonEmpty && partitionFilter.nonEmpty) {
       conditions += partitionFilter.replace(
         partitionCol,
         s"${Config.TargetAlias}.$partitionCol"
@@ -70,7 +70,7 @@ object FilterBuilder extends LogSupport {
   def buildReplaceWherePredicate(
       ds: DataFrame,
       partitionCol: String,
-      whereClause: String = ""
+      whereClause: String
   ): String = {
     if (ds != null && partitionCol.nonEmpty) {
       val replaceWhere = new mutable.StringBuilder(s"$whereClause")
