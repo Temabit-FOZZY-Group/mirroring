@@ -35,24 +35,22 @@ class DeltaService(context: WriterContext) extends LogSupport {
       .option("mergeSchema", "true")
       .option("userMetadata", context.ctCurrentVersion)
 
+    val replaceWhere = FilterBuilder.buildReplaceWherePredicate(
+      data,
+      context.lastPartitionCol,
+      context.whereClause
+    )
+    if (replaceWhere.nonEmpty && context.mode == "overwrite") {
+      logger.info(
+        s"Data matching next condition will be replaced: $replaceWhere"
+      )
+      writer = writer
+        .option("replaceWhere", replaceWhere)
+    }
     if (context.partitionCols.nonEmpty) {
       logger.info("Saving data with partition")
       writer = writer
         .partitionBy(context.partitionCols: _*)
-
-      val replaceWhere = FilterBuilder.buildReplaceWherePredicate(
-        data,
-        context.lastPartitionCol,
-        context.whereClause
-      )
-      if (replaceWhere.nonEmpty) {
-        logger.info(
-          s"Data matching next condition will be replaced: $replaceWhere"
-        )
-        writer = writer
-          .option("replaceWhere", replaceWhere)
-          .mode("overwrite")
-      }
     }
     writer
   }
