@@ -18,7 +18,7 @@ package mirroring.builders
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, to_date, to_utc_timestamp}
-import mirroring.services.SparkService.spark
+import mirroring.services.SparkService
 import mirroring.Config
 
 object DataframeBuilder {
@@ -43,6 +43,7 @@ object DataframeBuilder {
     var df = jdbcDF
     if (ctx.generateColumn) {
       jdbcDF.createOrReplaceTempView(s"${ctx.targetTableName}_tempView")
+      val spark = SparkService.spark
       val generatedDs = spark.sql(
         s"select *, ${ctx.generatedColumnExp} as" +
           s" ${ctx.generatedColumnName} from ${ctx.targetTableName}_tempView"
