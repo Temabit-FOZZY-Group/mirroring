@@ -15,7 +15,7 @@ jdbcUrl==jdbc:jtds:sqlserver://server\;instance=inst\;domain=dmn\;useNTLMv2=true
 * **path_to_save**          `required` Your path to save the data.
 * **tab**                   `required` Only table name without any enclosing characters like "[]".
 * **schema**                `required` Only schema name without any enclosing characters like "[]". Default - "dbo".
-* **query**                 `optional` Custom query to the source. If used with "where" condition, params "where" must not be specified.
+* **query**                 `optional` Custom query to the source. If used with "where" condition within query, param "where" must not be specified.
 * **where**                 `optional` Where clause to filter data, e.g. `date = '2011-02-02'`. Must be interchangeable with Spark SQL
 * **jdbcUrl**               `required` JDBC Url to the source database.
 * **mode**                  `required` Default - Error if exists.
