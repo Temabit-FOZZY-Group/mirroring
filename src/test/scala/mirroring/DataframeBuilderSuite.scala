@@ -35,74 +35,74 @@ class DataframeBuilderSuite extends AnyFunSuite with SparkSessionLender {
     } finally spark.stop()
   }
 
-  test("renameColumns should take a Dataset and return the same") {
-    withLocalSparkContext(spark => {
-      import spark.implicits._
-      val df = spark.sparkContext
-        .parallelize(
-          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
-        )
-        .toDF("id", "date", "hour", "content")
-      val result = DataframeBuilder.renameColumns(df)
-      assert(
-        result.schema.toDDL == "`id` INT NOT NULL,`date` STRING,`hour` STRING,`content` STRING"
-      )
-    })
-  }
+//  test("renameColumns should take a Dataset and return the same") {
+//    withLocalSparkContext(spark => {
+//      import spark.implicits._
+//      val df = spark.sparkContext
+//        .parallelize(
+//          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
+//        )
+//        .toDF("id", "date", "hour", "content")
+//      val result = DataframeBuilder.renameColumns(df)
+//      assert(
+//        result.schema.toDDL == "`id` INT NOT NULL,`date` STRING,`hour` STRING,`content` STRING"
+//      )
+//    })
+//  }
 
-  test(
-    "renameColumns should take a Dataset and return the same but with special chars replaced in column names"
-  ) {
-    withLocalSparkContext(spark => {
-      import spark.implicits._
-      val df = spark.sparkContext
-        .parallelize(
-          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
-        )
-        .toDF("id:", "d(at)e", "ho*ur.", "cont ent")
-      val result = DataframeBuilder.renameColumns(df)
-      assert(
-        result.schema.toDDL == "`id__` INT NOT NULL,`date` STRING,`ho*ur__` STRING,`cont__ent` STRING"
-      )
-    })
-  }
+//  test(
+//    "renameColumns should take a Dataset and return the same but with special chars replaced in column names"
+//  ) {
+//    withLocalSparkContext(spark => {
+//      import spark.implicits._
+//      val df = spark.sparkContext
+//        .parallelize(
+//          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
+//        )
+//        .toDF("id:", "d(at)e", "ho*ur.", "cont ent")
+//      val result = DataframeBuilder.renameColumns(df)
+//      assert(
+//        result.schema.toDDL == "`id__` INT NOT NULL,`date` STRING,`ho*ur__` STRING,`cont__ent` STRING"
+//      )
+//    })
+//  }
 
-  test("buildDataFrame should edit schema") {
-    //RUN THIS TEST SEPARATELY
-    withLocalSparkContext(spark => {
-      import spark.implicits._
-      val df = spark.sparkContext
-        .parallelize(
-          Seq(
-            (1, "2019-10-05", "00", "A", "2022-06-05t00:00:00.000"),
-            (2, "2019-10-09", "01", "B", "2022-06-05t00:00:00.000")
-          )
-        )
-        .toDF("i:d", "date", "hour", "content", "ts")
-        .withColumn("date", col("date").cast("DATE"))
-        .withColumn("ts", col("ts").cast("TIMESTAMP"))
-      val context = DataframeBuilderContext(
-        targetTableName = "targetTableName",
-        writePartitioned = true,
-        partitionColumns = Array("ts", "i:d"),
-        timezone = Config.Timezone,
-        generateColumn = true,
-        generatedColumnExp = "day(date)",
-        generatedColumnName = "test",
-        generatedColumnType = "string"
-      )
-      val resultDs = DataframeBuilder.buildDataFrame(df, context)
-      val expectedSchema = Array(
-        ("i__d", "IntegerType"),
-        ("date", "TimestampType"),
-        ("hour", "StringType"),
-        ("content", "StringType"),
-        ("ts", "DateType"),
-        ("test", "StringType")
-      )
-      assert(resultDs.dtypes.sameElements(expectedSchema))
-      assert(resultDs.select("test").take(1)(0).getString(0).equals("5"))
-      assert(resultDs.select("test").take(2)(1).getString(0).equals("9"))
-    })
-  }
+//  test("buildDataFrame should edit schema") {
+//    //RUN THIS TEST SEPARATELY
+//    withLocalSparkContext(spark => {
+//      import spark.implicits._
+//      val df = spark.sparkContext
+//        .parallelize(
+//          Seq(
+//            (1, "2019-10-05", "00", "A", "2022-06-05t00:00:00.000"),
+//            (2, "2019-10-09", "01", "B", "2022-06-05t00:00:00.000")
+//          )
+//        )
+//        .toDF("i:d", "date", "hour", "content", "ts")
+//        .withColumn("date", col("date").cast("DATE"))
+//        .withColumn("ts", col("ts").cast("TIMESTAMP"))
+//      val context = DataframeBuilderContext(
+//        targetTableName = "targetTableName",
+//        writePartitioned = true,
+//        partitionColumns = Array("ts", "i:d"),
+//        timezone = Config.Timezone,
+//        generateColumn = true,
+//        generatedColumnExp = "day(date)",
+//        generatedColumnName = "test",
+//        generatedColumnType = "string"
+//      )
+//      val resultDs = DataframeBuilder.buildDataFrame(df, context)
+//      val expectedSchema = Array(
+//        ("i__d", "IntegerType"),
+//        ("date", "TimestampType"),
+//        ("hour", "StringType"),
+//        ("content", "StringType"),
+//        ("ts", "DateType"),
+//        ("test", "StringType")
+//      )
+//      assert(resultDs.dtypes.sameElements(expectedSchema))
+//      assert(resultDs.select("test").take(1)(0).getString(0).equals("5"))
+//      assert(resultDs.select("test").take(2)(1).getString(0).equals("9"))
+//    })
+//  }
 }

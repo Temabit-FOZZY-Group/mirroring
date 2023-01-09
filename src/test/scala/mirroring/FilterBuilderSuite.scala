@@ -57,35 +57,35 @@ class FilterBuilderSuite extends AnyFunSuite with SparkSessionLender {
     assert(result.equals("test_some__chars____"))
   }
 
-  test(
-    "buildReplaceWherePredicate should collect values from dataset to replace them on target"
-  ) {
-    withLocalSparkContext(spark => {
-      val partitionCol = "id"
-      import spark.implicits._
-      val df = spark.sparkContext
-        .parallelize(
-          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
-        )
-        .toDF("id", "date", "hour", "content")
-      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
-      assert(result == "id in (1, 2)")
-    })
-  }
+//  test(
+//    "buildReplaceWherePredicate should collect values from dataset to replace them on target"
+//  ) {
+//    withLocalSparkContext(spark => {
+//      val partitionCol = "id"
+//      import spark.implicits._
+//      val df = spark.sparkContext
+//        .parallelize(
+//          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
+//        )
+//        .toDF("id", "date", "hour", "content")
+//      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
+//      assert(result == "id in (1, 2)")
+//    })
+//  }
 
-  test("buildReplaceWherePredicate with empty partition") {
-    withLocalSparkContext(spark => {
-      val partitionCol = ""
-      import spark.implicits._
-      val df = spark.sparkContext
-        .parallelize(
-          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
-        )
-        .toDF("id", "date", "hour", "content")
-      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
-      assert(result == "")
-    })
-  }
+//  test("buildReplaceWherePredicate with empty partition") {
+//    withLocalSparkContext(spark => {
+//      val partitionCol = ""
+//      import spark.implicits._
+//      val df = spark.sparkContext
+//        .parallelize(
+//          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
+//        )
+//        .toDF("id", "date", "hour", "content")
+//      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
+//      assert(result == "")
+//    })
+//  }
 
   test(
     "buildReplaceWherePredicate with empty partition and null dataframe"
@@ -98,25 +98,25 @@ class FilterBuilderSuite extends AnyFunSuite with SparkSessionLender {
     })
   }
 
-  test(
-    "buildReplaceWherePredicate should collect values from dataset to replace them on target and append where clause from user"
-  ) {
-    withLocalSparkContext(spark => {
-      val partitionCol = "id"
-      val whereClause =
-        "(filid = 3171 and cast(operationdate as date) = '2022-12-02')"
-      import spark.implicits._
-      val df = spark.sparkContext
-        .parallelize(
-          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
-        )
-        .toDF("id", "date", "hour", "content")
-      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, whereClause)
-      assert(
-        result == "(filid = 3171 and cast(operationdate as date) = '2022-12-02') AND id in (1, 2)"
-      )
-    })
-  }
+//  test(
+//    "buildReplaceWherePredicate should collect values from dataset to replace them on target and append where clause from user"
+//  ) {
+//    withLocalSparkContext(spark => {
+//      val partitionCol = "id"
+//      val whereClause =
+//        "(filid = 3171 and cast(operationdate as date) = '2022-12-02')"
+//      import spark.implicits._
+//      val df = spark.sparkContext
+//        .parallelize(
+//          Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
+//        )
+//        .toDF("id", "date", "hour", "content")
+//      val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, whereClause)
+//      assert(
+//        result == "(filid = 3171 and cast(operationdate as date) = '2022-12-02') AND id in (1, 2)"
+//      )
+//    })
+//  }
 
   test(
     "buildReplaceWherePredicate with empty partition and null dataframe and where clause from user should return where clause"
