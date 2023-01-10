@@ -18,10 +18,15 @@ package palefat.data.mirror
 
 import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
-import palefat.data.mirror.handlers.ChangeTrackingHandler
+import palefat.data.mirror.handlers.{ChangeTrackingHandler, CustomChangeTrackingHandler}
 import palefat.data.mirror.services.SparkService.spark
 import palefat.data.mirror.services.databases.{JdbcCTService, JdbcPartitionedService, JdbcService}
-import palefat.data.mirror.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
+import palefat.data.mirror.services.writer.{
+  ChangeTrackingService,
+  DeltaService,
+  MergeService,
+  WriterContext
+}
 import palefat.data.mirror.services.{DeltaTableService, SqlService}
 import wvlet.log.LogSupport
 
@@ -42,35 +47,39 @@ object Runner extends LogSupport {
     spark.conf.set("spark.sql.session.timeZone", config.timezone)
   }
 
+  //noinspection ScalaStyle
   def main(args: Array[String]): Unit = {
     logger.info("Starting mirroring-lib...")
     val config: Config = initConfig(args)
     setSparkContext(config)
-    val jdbcContext                  = config.getJdbcContext
-    val writerContext: WriterContext = config.getWriterContext
-    var query: String                = config.query
-    val changeTrackingHandler        = new ChangeTrackingHandler(config)
+    val jdbcContext                                  = config.getJdbcContext
+    val writerContext: WriterContext                 = config.getWriterContext
+    var query: String                                = config.query
+    var changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(config)
 
     if (config.isChangeTrackingEnabled) {
+      if (config.CTChangesQuery.nonEmpty) {
+        changeTrackingHandler = new CustomChangeTrackingHandler(config)
+      }
       query = changeTrackingHandler.query
       writerContext.ctCurrentVersion = changeTrackingHandler.ctCurrentVersion
       jdbcContext._ctCurrentVersion = Some(changeTrackingHandler.ctCurrentVersion)
       jdbcContext._changeTrackingLastVersion = Some(changeTrackingHandler.changeTrackingLastVersion)
     }
 
-    val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
-      var jdbcService: JdbcService = new JdbcService(jdbcContext)
-      if (config.splitBy.nonEmpty) {
-        jdbcService = new JdbcPartitionedService(jdbcContext)
-      }
-      val jdbcDFTemp = jdbcService.loadData(query).cache()
-      logger.info(s"Number of incoming rows: ${jdbcDFTemp.count}")
-      jdbcDFTemp
-    } else {
-      logger.info("Change Tracking: use custom ctChangesQuery")
-      val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
-      jdbcCTService.loadData()
+    var jdbcService: JdbcService = new JdbcService(jdbcContext)
+
+    if (config.splitBy.nonEmpty) {
+      jdbcService = new JdbcPartitionedService(jdbcContext)
     }
+
+    if (config.isChangeTrackingEnabled && config.CTChangesQuery.nonEmpty) {
+      jdbcService = new JdbcCTService(jdbcContext)
+    }
+
+    val jdbcDF: DataFrame = jdbcService.loadData(query).cache()
+    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
+
     val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
 
