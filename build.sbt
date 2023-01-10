@@ -33,7 +33,7 @@ headerLicense := Some(
   )
 )
 name := "DeltaFlow"
-version := "1.0.2"
+version := "1.0.3"
 scalaVersion := "2.12.10"
 val sparkVersion = "3.2.2"
 libraryDependencies ++= Seq(

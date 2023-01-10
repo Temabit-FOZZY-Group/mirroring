@@ -152,7 +152,11 @@ case class Config(
   val query: String =
     if (_query.isEmpty) {
       SqlBuilder.buildSelectTableSQL(schema, tab, whereClause.toString)
-    } else { s"(${_query}) as subq" }
+    } else if (_whereClause.nonEmpty) {
+      s"(${_query} where ${whereClause.toString}) as subq"
+    } else {
+      s"(${_query}) as subq"
+    }
 
   def getDataframeBuilderContext: DataframeBuilderContext = {
     DataframeBuilderContext(
