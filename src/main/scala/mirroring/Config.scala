@@ -148,9 +148,9 @@ case class Config(
     if (_query.isEmpty) {
       SqlBuilder.buildSelectTableSQL(schema, tab, whereClause.toString)
     } else if (_whereClause.nonEmpty) {
-        s"(${_query} where ${whereClause.toString}) as subq"
+      s"(${_query} where ${whereClause.toString}) as subq"
     } else {
-        s"(${_query}) as subq"
+      s"(${_query}) as subq"
     }
 
   def getDataframeBuilderContext: DataframeBuilderContext = {
