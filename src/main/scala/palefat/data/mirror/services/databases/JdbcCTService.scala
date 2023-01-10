@@ -16,27 +16,28 @@
 
 package palefat.data.mirror.services.databases
 
-import java.sql.DriverManager
 import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.builders._
 import wvlet.log.LogSupport
 
-class JdbcCTService(jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContext) with LogSupport {
+import java.sql.DriverManager
 
-  def loadData(): DataFrame = {
+class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) with LogSupport {
+
+  override def loadData(_query: String = ""): DataFrame = {
     val connection = DriverManager.getConnection(url)
     try {
       val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(
-        jdbcContext.CTChangesQueryParams,
+        jdbcContext.ctChangesQueryParams,
         jdbcContext.schema,
         jdbcContext.table,
-        jdbcContext.changeTrackingLastVersion.toString(),
+        jdbcContext.ctLastVersion.toString(),
         jdbcContext.ctCurrentVersion.toString(),
       )
       val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(
         JdbcBuilder.buildJDBCResultSet(
           connection,
-          jdbcContext.CTChangesQuery,
+          jdbcContext.ctChangesQuery,
           params
         )
       )
@@ -55,8 +56,8 @@ class JdbcCTService(jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContex
    *
    * Use to get Change Tracking version from the result set.
    */
-  def getChangeTrackingVersionCustom(query: String,
-                                     parameters: Array[String] = Array[String](),
+  def getChangeTrackingVersion(query: String,
+                               parameters: Array[String] = Array[String](),
                                     ): BigInt = {
     val connection = DriverManager.getConnection(url)
     try {
@@ -72,5 +73,20 @@ class JdbcCTService(jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContex
     } finally {
       connection.close()
     }
+  }
+
+  def getChangeTrackingVersion(query: String): BigInt = {
+    val jdbcDF: DataFrame = super[JdbcService].loadData(query).cache()
+
+    var version: BigInt = BigInt(0)
+
+    if (!jdbcDF.isEmpty) {
+      version = BigInt(
+        jdbcDF
+          .collect()(0)
+          .getLong(0)
+      )
+    }
+    version
   }
 }
