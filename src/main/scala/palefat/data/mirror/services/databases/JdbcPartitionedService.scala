@@ -22,10 +22,9 @@ import wvlet.log.LogSupport
 
 import scala.collection.mutable
 
-class JdbcPartitionedDecorator(
-    decoratedService: DbService,
+class JdbcPartitionedService(
     context: JdbcContext
-) extends DbServiceDecorator(decoratedService)
+) extends JdbcService(context)
     with LogSupport {
 
   private lazy val options: mutable.Map[String, String] = {
@@ -55,7 +54,7 @@ class JdbcPartitionedDecorator(
          |$query) as query
       """.stripMargin
 
-    var ds = decoratedService.loadData(sql).cache()
+    var ds = loadData(sql).cache()
     // Format timestamp to avoid Conversion failed when converting date and/or time from character string.
     if (ds.schema("lowerBound").dataType.simpleString == "timestamp") {
       ds = ds.withColumn(
@@ -81,7 +80,7 @@ class JdbcPartitionedDecorator(
          |$query) as query
       """.stripMargin
 
-    var ds = decoratedService.loadData(sql).cache()
+    var ds = loadData(sql).cache()
 
     // Format timestamp to avoid Conversion failed when converting date and/or time from character string.
     if (ds.schema("upperBound").dataType.simpleString == "timestamp") {
@@ -103,7 +102,7 @@ class JdbcPartitionedDecorator(
   }
 
   override def dfReader: DataFrameReader = {
-    decoratedService.dfReader.options(options)
+    dfReader.options(options)
   }
 
   override def loadData(_query: String): DataFrame = {

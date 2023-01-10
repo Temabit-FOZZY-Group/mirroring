@@ -18,7 +18,7 @@ package palefat.data.mirror
 
 import palefat.data.mirror.builders.{DataframeBuilderContext, FilterBuilder, SqlBuilder}
 import palefat.data.mirror.services.databases.JdbcContext
-import palefat.data.mirror.services.writer._
+import palefat.data.mirror.services.writer.WriterContext
 import wvlet.log.LogSupport
 
 import java.time.LocalDate
@@ -61,7 +61,13 @@ case class Config(
     private val _primaryKey: String,
     private val _zorderbyCol: String,
     logLvl: String,
-    logSparkLvl: String
+    logSparkLvl: String,
+    CTChangesQuery: String,
+    _CTChangesQueryParams: String,
+    CTMinValidVersionQuery: String,
+    _CTMinValidVersionParams: String,
+    CTCurrentVersionQuery: String,
+    _CTCurrentVersionParams: String,
 ) extends LogSupport {
 
   FlowLogger.init(schema, tab, logLvl)
@@ -83,6 +89,9 @@ case class Config(
   val primary_key: Array[String]   = stringToArray(_primaryKey)
   val zorderby_col: Array[String]  = stringToArray(_zorderbyCol)
   val partitionCols: Array[String] = stringToArray(_partitionCol)
+  val CTChangesQueryParams: Array[String] = stringToArray(_CTChangesQueryParams)
+  val CTMinValidVersionParams: Array[String] = stringToArray(_CTMinValidVersionParams)
+  val CTCurrentVersionParams: Array[String]    = stringToArray(_CTCurrentVersionParams)
   val lastPartitionCol: String =
     if (partitionCols.length > 0) partitionCols.last else ""
 
@@ -172,7 +181,9 @@ case class Config(
       inTable = tab,
       inSchema = schema,
       numPart = numPart,
-      splitby = splitBy
+      splitby = splitBy,
+      _CTChangesQuery = CTChangesQuery,
+      _CTChangesQueryParams = CTChangesQueryParams
     )
   }
 
@@ -218,7 +229,13 @@ case class Config(
        |primary_key - [${primary_key.mkString(", ")}],
        |zorderby_col - [${zorderby_col.mkString(", ")}],
        |log_lvl - $logLvl,
-       |log_spark_lvl - $logSparkLvl
+       |log_spark_lvl - $logSparkLvl,
+       |CTChangesQuery - $CTChangesQuery,
+       |CTChangesQueryParams - [${CTChangesQueryParams.mkString(", ")}],
+       |CTMinValidVersionQuery - $CTMinValidVersionQuery,
+       |CTMinValidVersionParams - [${CTMinValidVersionParams.mkString(", ")}],
+       |CTCurrentVersionQuery - $CTCurrentVersionQuery,
+       |CTCurrentVersionParams - [${CTCurrentVersionParams.mkString(", ")}]
        |""".stripMargin
 
   }

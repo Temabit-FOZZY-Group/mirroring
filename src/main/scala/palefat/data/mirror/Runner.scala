@@ -20,8 +20,8 @@ import org.apache.spark.sql.DataFrame
 import palefat.data.mirror.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import palefat.data.mirror.handlers.ChangeTrackingHandler
 import palefat.data.mirror.services.SparkService.spark
-import palefat.data.mirror.services.databases.{DbService, JdbcPartitionedDecorator, JdbcService}
-import palefat.data.mirror.services.writer._
+import palefat.data.mirror.services.databases.{JdbcCTService, JdbcPartitionedService, JdbcService}
+import palefat.data.mirror.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
 import palefat.data.mirror.services.{DeltaTableService, SqlService}
 import wvlet.log.LogSupport
 
@@ -54,24 +54,37 @@ object Runner extends LogSupport {
     if (config.isChangeTrackingEnabled) {
       query = changeTrackingHandler.query
       writerContext.ctCurrentVersion = changeTrackingHandler.ctCurrentVersion
-    }
-    var jdbcService: DbService = new JdbcService(jdbcContext)
-    if (config.splitBy.nonEmpty) {
-      jdbcService = new JdbcPartitionedDecorator(jdbcService, jdbcContext)
+      jdbcContext._ctCurrentVersion = Some(changeTrackingHandler.ctCurrentVersion)
+      jdbcContext._changeTrackingLastVersion = Some(changeTrackingHandler.changeTrackingLastVersion)
     }
 
-    val jdbcDF: DataFrame = jdbcService.loadData(query).cache()
-    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
+    val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
+      var jdbcService: JdbcService = new JdbcService(jdbcContext)
+      if (config.splitBy.nonEmpty) {
+        jdbcService = new JdbcPartitionedService(jdbcContext)
+      }
+      val jdbcDFTemp = jdbcService.loadData(query).cache()
+      logger.info(s"Number of incoming rows: ${jdbcDFTemp.count}")
+      jdbcDFTemp
+    } else {
+      logger.info("Change Tracking: use custom ctChangesQuery")
+      val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
+      jdbcCTService.loadData()
+    }
     val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
-    var writerService: DeltaService = new DeltaService(writerContext)
 
+    var writerService: DeltaService = new DeltaService(writerContext)
     if (config.isChangeTrackingEnabled) {
       writerService = new ChangeTrackingService(writerContext)
     } else if (config.useMerge) {
       writerService = new MergeService(writerContext)
     }
     writerService.write(data = ds)
+    deltaPostProcessing(config, ds)
+  }
+
+  def deltaPostProcessing(config: Config, ds: DataFrame): Unit = {
     if (config.zorderby_col.nonEmpty) {
       val replaceWhere =
         FilterBuilder.buildReplaceWherePredicate(
