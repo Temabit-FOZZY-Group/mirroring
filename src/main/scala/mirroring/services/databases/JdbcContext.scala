@@ -14,8 +14,18 @@
  * limitations under the License.
  */
 
-addSbtPlugin("com.eed3si9n"      % "sbt-assembly"          % "1.2.0")
-addSbtPlugin("org.scalastyle"   %% "scalastyle-sbt-plugin" % "1.0.0")
-addSbtPlugin("de.heikoseeberger" % "sbt-header"            % "5.6.0")
-addSbtPlugin("org.scalameta"     % "sbt-scalafmt"          % "2.4.0")
-addSbtPlugin("org.scoverage"     % "sbt-scoverage"         % "1.6.1")
+package mirroring.services.databases
+
+case class JdbcContext(
+    private val jdbcUrl: String,
+    private val inTable: String,
+    private val inSchema: String,
+    private val numPart: String,
+    private val splitby: String
+) {
+  val url: String             = jdbcUrl
+  val table: String           = inTable
+  val schema: String          = inSchema
+  val partitionColumn: String = splitby
+  val numPartitions: String   = numPart
+}

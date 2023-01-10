@@ -33,7 +33,7 @@ headerLicense := Some(
   )
 )
 name := "DeltaFlow"
-version := "1.0.2"
+version := "1.0.3"
 scalaVersion := "2.12.10"
 val sparkVersion = "3.2.2"
 libraryDependencies ++= Seq(
@@ -44,7 +44,7 @@ libraryDependencies ++= Seq(
   "org.wvlet.airframe" %% "airframe-log"       % "22.7.3",
   "org.wvlet.airframe" %% "airframe-json"      % "22.8.0",
   "org.wvlet.airframe" %% "airframe-codec"     % "22.8.0",
-  "org.scalatest"      %% "scalatest"          % "3.0.8"      % "test",
+  "org.scalatest"      %% "scalatest"          % "3.2.14"     % "test",
   "org.scalatest"      %% "scalatest-core"     % "3.2.13"     % "test",
   "org.scalatest"      %% "scalatest-funsuite" % "3.2.13"     % "test"
 )

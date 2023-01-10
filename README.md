@@ -1,4 +1,5 @@
 # Delta flow library
+[![codecov](https://codecov.io/github/Temabit-FOZZY-Group/mirroring/branch/develop/graph/badge.svg?token=HT36LXMF80)](https://codecov.io/github/Temabit-FOZZY-Group/mirroring)
 
 This library is used to read data from MS SQL only source and save them into _Delta_ format.
 
@@ -45,7 +46,8 @@ jdbcUrl==jdbc:jtds:sqlserver://server\;instance=inst\;domain=dmn\;useNTLMv2=true
 
 # Run unit tests
 `sbt test`
-
+`sbt compile`
+`sbt package`
 # Scalastyle usage
 `sbt scalastyle`
 `sbt headerCreate`

@@ -14,8 +14,15 @@
  * limitations under the License.
  */
 
-addSbtPlugin("com.eed3si9n"      % "sbt-assembly"          % "1.2.0")
-addSbtPlugin("org.scalastyle"   %% "scalastyle-sbt-plugin" % "1.0.0")
-addSbtPlugin("de.heikoseeberger" % "sbt-header"            % "5.6.0")
-addSbtPlugin("org.scalameta"     % "sbt-scalafmt"          % "2.4.0")
-addSbtPlugin("org.scoverage"     % "sbt-scoverage"         % "1.6.1")
+package mirroring.builders
+
+case class DataframeBuilderContext(
+    targetTableName: String,
+    writePartitioned: Boolean,
+    partitionColumns: Array[String],
+    timezone: String,
+    generateColumn: Boolean,
+    generatedColumnExp: String,
+    generatedColumnName: String,
+    generatedColumnType: String
+)

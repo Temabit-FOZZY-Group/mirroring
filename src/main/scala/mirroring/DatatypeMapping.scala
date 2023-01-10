@@ -14,8 +14,19 @@
  * limitations under the License.
  */
 
-addSbtPlugin("com.eed3si9n"      % "sbt-assembly"          % "1.2.0")
-addSbtPlugin("org.scalastyle"   %% "scalastyle-sbt-plugin" % "1.0.0")
-addSbtPlugin("de.heikoseeberger" % "sbt-header"            % "5.6.0")
-addSbtPlugin("org.scalameta"     % "sbt-scalafmt"          % "2.4.0")
-addSbtPlugin("org.scoverage"     % "sbt-scoverage"         % "1.6.1")
+package mirroring
+
+object DatatypeMapping {
+  val DatatypeMapping: scala.collection.mutable.Map[String, String] =
+    scala.collection.mutable.Map[String, String](
+      "date" -> "DATE"
+    )
+
+  def getDatatype(incomingDatatype: String): String = {
+    DatatypeMapping(incomingDatatype.toLowerCase.trim)
+  }
+
+  def contains(incomingDatatype: String): Boolean = {
+    DatatypeMapping.contains(incomingDatatype.toLowerCase.trim)
+  }
+}

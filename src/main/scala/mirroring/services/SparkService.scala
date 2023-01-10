@@ -14,8 +14,23 @@
  * limitations under the License.
  */
 
-addSbtPlugin("com.eed3si9n"      % "sbt-assembly"          % "1.2.0")
-addSbtPlugin("org.scalastyle"   %% "scalastyle-sbt-plugin" % "1.0.0")
-addSbtPlugin("de.heikoseeberger" % "sbt-header"            % "5.6.0")
-addSbtPlugin("org.scalameta"     % "sbt-scalafmt"          % "2.4.0")
-addSbtPlugin("org.scoverage"     % "sbt-scoverage"         % "1.6.1")
+package mirroring.services
+
+import org.apache.spark.sql.SparkSession
+
+object SparkService {
+
+  val spark: SparkSession = SparkSession
+    .builder()
+    .appName("DataMirroring")
+    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+    .config(
+      "spark.sql.catalog.spark_catalog",
+      "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+    )
+    .config("spark.sql.parquet.int96RebaseModeInWrite", "LEGACY")
+    .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    .enableHiveSupport()
+    .getOrCreate()
+
+}
