@@ -24,7 +24,7 @@ import java.sql.DriverManager
 
 class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) with LogSupport {
 
-  override def loadData(_query: String = ""): DataFrame = {
+  override def loadData(@annotation.unused _query: String = ""): DataFrame = {
     val connection = DriverManager.getConnection(url)
     try {
       val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(
