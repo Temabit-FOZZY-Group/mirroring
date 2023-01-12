@@ -40,7 +40,7 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
           jdbcContext.ctChangesQuery,
           params
         )
-      )
+      ).cache()
       // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
       jdbcDF
