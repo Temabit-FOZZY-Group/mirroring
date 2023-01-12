@@ -32,16 +32,19 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
         jdbcContext.schema,
         jdbcContext.table,
         jdbcContext.ctLastVersion.toString,
-        jdbcContext.ctCurrentVersion.toString,
+        jdbcContext.ctCurrentVersion.toString
       )
-      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(
-        JdbcBuilder.buildJDBCResultSet(
-          connection,
-          jdbcContext.ctChangesQuery,
-          params
+      val jdbcDF: DataFrame = JdbcBuilder
+        .buildDataFrameFromResultSet(
+          JdbcBuilder.buildJDBCResultSet(
+            connection,
+            jdbcContext.ctChangesQuery,
+            params
+          )
         )
-      ).cache()
+        .cache()
       // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
+      logger.info(s"Number of incoming rows: ${jdbcDF.count}")
       jdbcDF
     } catch {
       case e: Exception => throw e
@@ -50,14 +53,14 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
     }
   }
 
-  /**
-   * Returns value from the first row, first column of the result set as BigInt.
-   *
-   * Use to get Change Tracking version from the result set.
-   */
-  def getChangeTrackingVersion(query: String,
-                               parameters: Array[String] = Array[String](),
-                                    ): BigInt = {
+  /** Returns value from the first row, first column of the result set as BigInt.
+    *
+    * Use to get Change Tracking version from the result set.
+    */
+  def getChangeTrackingVersion(
+      query: String,
+      parameters: Array[String] = Array[String]()
+  ): BigInt = {
     val connection = DriverManager.getConnection(url)
     try {
       val rs = JdbcBuilder.buildJDBCResultSet(

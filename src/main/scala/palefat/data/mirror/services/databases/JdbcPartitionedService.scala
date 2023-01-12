@@ -105,6 +105,9 @@ class JdbcPartitionedService(
     logger.info(s"Reading data with query: ${_query}")
     // setting query to use it in the lower/upper bounds calculations
     query = _query
-    super[JdbcService].dfReader.options(options).option("dbtable", _query).load().cache()
+    val jdbcDF =
+      super[JdbcService].dfReader.options(options).option("dbtable", _query).load().cache()
+    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
+    jdbcDF
   }
 }
