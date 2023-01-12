@@ -47,7 +47,6 @@ object Runner extends LogSupport {
     spark.conf.set("spark.sql.session.timeZone", config.timezone)
   }
 
-  //noinspection ScalaStyle
   def main(args: Array[String]): Unit = {
     logger.info("Starting mirroring-lib...")
     val config: Config = initConfig(args)

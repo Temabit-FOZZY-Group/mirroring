@@ -31,8 +31,8 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
         jdbcContext.ctChangesQueryParams,
         jdbcContext.schema,
         jdbcContext.table,
-        jdbcContext.ctLastVersion.toString(),
-        jdbcContext.ctCurrentVersion.toString(),
+        jdbcContext.ctLastVersion.toString,
+        jdbcContext.ctCurrentVersion.toString,
       )
       val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(
         JdbcBuilder.buildJDBCResultSet(
