@@ -17,7 +17,7 @@ jdbcUrl==jdbc:jtds:sqlserver://server\;instance=inst\;domain=dmn\;useNTLMv2=true
 * **schema**                `required` Only schema name without any enclosing characters like "[]". Default - "dbo".
 * **where**                 `optional` Where clause to filter data, e.g. `date = '2011-02-02'`. Must be interchangeable with Spark SQL
 * **jdbcUrl**               `required` JDBC Url to the source database.
-* **mode**                  `required` Default - Error if exists.
+* **mode**                  `optional` Must be set unless `useMerge` or `isChangeTrackingEnabled` is set to `true`. Default behaviour - Error is thrown if delta table exists.
 * **numpart**               `optional` Number of partitions for Spark (to be used with splitby).
 * **splitby**               `optional` Partition column, its type should be numeric, date, or timestamp.
 * **calc_min_dt**           `optional` Lower bound of the time range (included) e.g. '2021-10-1'.
