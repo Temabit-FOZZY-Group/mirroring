@@ -93,7 +93,7 @@ object JdbcBuilder extends LogSupport {
         case "queryCTLastVersion" =>
           logger.info("Change Tracking default param used: querying last version")
           params :+= changeTrackingLastVersion
-        case "defaultSQLTable" =>
+        case "queryCTCurrentVersion" =>
           logger.info("Change Tracking default param used: querying current version")
           params :+= ctCurrentVersion
         case _ =>
