@@ -26,7 +26,11 @@ import wvlet.log.LogSupport
 
 object JdbcBuilder extends LogSupport {
 
-  def buildJDBCResultSet(connection: Connection, query: String, parameters: Array[String] = Array[String]()): ResultSet = {
+  def buildJDBCResultSet(
+      connection: Connection,
+      query: String,
+      parameters: Array[String] = Array[String]()
+  ): ResultSet = {
     val cStmt: CallableStatement = connection.prepareCall(query)
     for ((parameter, i) <- parameters.zipWithIndex) {
       cStmt.setString(i + 1, parameter)
@@ -37,14 +41,15 @@ object JdbcBuilder extends LogSupport {
   }
 
   def buildStructFromResultSet(rs: ResultSet): StructType = {
-    val md = rs.getMetaData
-    val columnCount = md.getColumnCount
+    val md                                        = rs.getMetaData
+    val columnCount                               = md.getColumnCount
     val structFieldsList: ListBuffer[StructField] = new ListBuffer[StructField]()
     for (i <- 1 to columnCount) {
       structFieldsList += StructField(
         md.getColumnName(i),
         StringType,
-        if (md.isNullable(i) == 1) true else false)
+        if (md.isNullable(i) == 1) true else false
+      )
     }
     val schema = StructType(structFieldsList.toList)
     schema
@@ -53,7 +58,7 @@ object JdbcBuilder extends LogSupport {
   def buildDataFrameFromResultSet(rs: ResultSet): DataFrame = {
     // Prepare a schema and columns
     val schema = buildStructFromResultSet(rs)
-    val columns = schema.foldLeft(Seq.empty[String]) {(seq: Seq[String], col: StructField) =>
+    val columns = schema.foldLeft(Seq.empty[String]) { (seq: Seq[String], col: StructField) =>
       seq ++ Seq(col.name)
     }
     // generate DataFrame
@@ -64,26 +69,35 @@ object JdbcBuilder extends LogSupport {
   // Define how each record will be converted in the ResultSet to a Row at each iteration
   private def parseResultSet(rs: ResultSet, columns: Seq[String]): Row = {
     val resultSetRecord = columns.map(c => rs.getString(c))
-    Row(resultSetRecord:_*)
+    Row(resultSetRecord: _*)
   }
 
-  private def resultSetToIter(rs: ResultSet, columns: Seq[String])(f: (ResultSet, Seq[String]) => Row): Iterator[Row] =
+  private def resultSetToIter(rs: ResultSet, columns: Seq[String])(
+      f: (ResultSet, Seq[String]) => Row
+  ): Iterator[Row] =
     new Iterator[Row] {
       def hasNext: Boolean = rs.next()
-      def next(): Row = f(rs, columns)
+      def next(): Row      = f(rs, columns)
     }
 
-  private def parallelizeResultSet(rs: ResultSet, columns: Seq[String], schema: StructType, sparkSession: SparkSession): DataFrame = {
-    val rdd = sparkSession.sparkContext.parallelize(resultSetToIter(rs, columns)(parseResultSet).toSeq)
+  private def parallelizeResultSet(
+      rs: ResultSet,
+      columns: Seq[String],
+      schema: StructType,
+      sparkSession: SparkSession
+  ): DataFrame = {
+    val rdd =
+      sparkSession.sparkContext.parallelize(resultSetToIter(rs, columns)(parseResultSet).toSeq)
     sparkSession.createDataFrame(rdd, schema)
   }
 
-  def buildCTChangesQueryParams(CTChangesQueryParams: Array[String],
-                                schema: String,
-                                tab: String,
-                                changeTrackingLastVersion: String,
-                                ctCurrentVersion: String,
-                               ): Array[String] = {
+  def buildCTChangesQueryParams(
+      CTChangesQueryParams: Array[String],
+      schema: String,
+      tab: String,
+      changeTrackingLastVersion: String,
+      ctCurrentVersion: String
+  ): Array[String] = {
     var params: Array[String] = Array()
     for (param <- CTChangesQueryParams) {
       param match {

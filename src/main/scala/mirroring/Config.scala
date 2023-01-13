@@ -67,7 +67,7 @@ case class Config(
     CTMinValidVersionQuery: String,
     _CTMinValidVersionParams: String,
     CTCurrentVersionQuery: String,
-    _CTCurrentVersionParams: String,
+    _CTCurrentVersionParams: String
 ) extends LogSupport {
 
   FlowLogger.init(schema, tab, logLvl)
@@ -84,14 +84,14 @@ case class Config(
 
   val targetTableName: String =
     s"${FilterBuilder.buildStrWithoutSpecChars(schema).toLowerCase}__${FilterBuilder.buildStrWithoutSpecChars(tab).toLowerCase}"
-  val pathToSave: String           = s"${_pathToSave}/$targetTableName"
-  val mergeKeys: Array[String]     = stringToArray(_mergeKeys)
-  val primary_key: Array[String]   = stringToArray(_primaryKey)
-  val zorderby_col: Array[String]  = stringToArray(_zorderbyCol)
-  val partitionCols: Array[String] = stringToArray(_partitionCol)
-  val CTChangesQueryParams: Array[String] = stringToArray(_CTChangesQueryParams)
+  val pathToSave: String                     = s"${_pathToSave}/$targetTableName"
+  val mergeKeys: Array[String]               = stringToArray(_mergeKeys)
+  val primary_key: Array[String]             = stringToArray(_primaryKey)
+  val zorderby_col: Array[String]            = stringToArray(_zorderbyCol)
+  val partitionCols: Array[String]           = stringToArray(_partitionCol)
+  val CTChangesQueryParams: Array[String]    = stringToArray(_CTChangesQueryParams)
   val CTMinValidVersionParams: Array[String] = stringToArray(_CTMinValidVersionParams)
-  val CTCurrentVersionParams: Array[String]    = stringToArray(_CTCurrentVersionParams)
+  val CTCurrentVersionParams: Array[String]  = stringToArray(_CTCurrentVersionParams)
   val lastPartitionCol: String =
     if (partitionCols.length > 0) partitionCols.last else ""
 

@@ -72,7 +72,7 @@ object Runner extends LogSupport {
     }
 
     val jdbcDF: DataFrame = jdbcService.loadData(query)
-    val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
+    val ds                = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
 
     var writerService: DeltaService = new DeltaService(writerContext)

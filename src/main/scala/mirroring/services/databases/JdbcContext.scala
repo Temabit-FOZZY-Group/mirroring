@@ -27,13 +27,13 @@ case class JdbcContext(
     private val _CTChangesQuery: String,
     private val _CTChangesQueryParams: Array[String]
 ) {
-  val url: String                              = jdbcUrl
-  val table: String                            = inTable
-  val schema: String                           = inSchema
-  val partitionColumn: String                  = splitby
-  val numPartitions: String                    = numPart
-  lazy val ctLastVersion: BigInt               = _changeTrackingLastVersion.get
-  lazy val ctCurrentVersion: BigInt            = _ctCurrentVersion.get
-  val ctChangesQuery: String                   = _CTChangesQuery
-  val ctChangesQueryParams: Array[String]      = _CTChangesQueryParams
+  val url: String                         = jdbcUrl
+  val table: String                       = inTable
+  val schema: String                      = inSchema
+  val partitionColumn: String             = splitby
+  val numPartitions: String               = numPart
+  lazy val ctLastVersion: BigInt          = _changeTrackingLastVersion.get
+  lazy val ctCurrentVersion: BigInt       = _ctCurrentVersion.get
+  val ctChangesQuery: String              = _CTChangesQuery
+  val ctChangesQueryParams: Array[String] = _CTChangesQueryParams
 }
