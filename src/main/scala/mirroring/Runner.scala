@@ -20,7 +20,7 @@ import org.apache.spark.sql.DataFrame
 import wvlet.log.LogSupport
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import mirroring.handlers.ChangeTrackingHandler
-import mirroring.services.databases.{JdbcPartitionedDecorator, JdbcCTService, JdbcService, DbService}
+import mirroring.services.databases.{JdbcCTService, JdbcPartitionedService, JdbcService}
 import mirroring.services.writer.{MergeService, ChangeTrackingService, DeltaService, WriterContext}
 import mirroring.services.{SparkService, SqlService, DeltaTableService}
 
@@ -57,16 +57,16 @@ object Runner extends LogSupport {
     }
 
     val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
-      var jdbcService: DbService = new JdbcService(jdbcContext)
+      val jdbcService: JdbcService = new JdbcService(jdbcContext)
       if (config.splitBy.nonEmpty) {
-        jdbcService = new JdbcPartitionedDecorator(jdbcService, jdbcContext)
+        val jdbcService = new JdbcPartitionedService(jdbcContext)
       }
       val jdbcDFTemp = jdbcService.loadData(query).cache()
       logger.info(s"Number of incoming rows: ${jdbcDFTemp.count}")
       jdbcDFTemp
     } else {
       logger.info("Change Tracking: use custom ctChangesQuery")
-      val jdbcCTService: DbService = new JdbcCTService(
+      val jdbcCTService: JdbcCTService = new JdbcCTService(
         config,
         changeTrackingHandler.changeTrackingLastVersion,
         changeTrackingHandler.ctCurrentVersion,
