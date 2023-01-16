@@ -18,29 +18,25 @@ package mirroring.services.databases
 
 import java.sql.DriverManager
 import org.apache.spark.sql.DataFrame
-import mirroring.Config
 import mirroring.builders._
 import wvlet.log.LogSupport
 
-class JdbcCTService(config: Config,
-                    changeTrackingLastVersion: BigInt,
-                    ctCurrentVersion: BigInt,
-                    jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContext) with LogSupport {
+class JdbcCTService(jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContext) with LogSupport {
 
   def loadData(): DataFrame = {
     val connection = DriverManager.getConnection(url)
     try {
       val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(
-        config.CTChangesQueryParams,
-        config.schema,
-        config.tab,
-        changeTrackingLastVersion.toString(),
-        ctCurrentVersion.toString(),
+        jdbcContext.CTChangesQueryParams,
+        jdbcContext.schema,
+        jdbcContext.table,
+        jdbcContext.changeTrackingLastVersion.toString(),
+        jdbcContext.ctCurrentVersion.toString(),
       )
       val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(
         JdbcBuilder.buildJDBCResultSet(
           connection,
-          config.CTChangesQuery,
+          jdbcContext.CTChangesQuery,
           params
         )
       )

@@ -181,7 +181,9 @@ case class Config(
       inTable = tab,
       inSchema = schema,
       numPart = numPart,
-      splitby = splitBy
+      splitby = splitBy,
+      _CTChangesQuery = CTChangesQuery,
+      _CTChangesQueryParams = CTChangesQueryParams
     )
   }
 
