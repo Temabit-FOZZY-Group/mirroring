@@ -85,18 +85,19 @@ object JdbcBuilder extends LogSupport {
                                 ctCurrentVersion: String,
                                ): Array[String] = {
     var params: Array[String] = Array()
-    for (el <- CTChangesQueryParams) {
-      if (el == "defaultSQLTable") {
-        logger.info("Change Tracking: use default SQLTable")
-        params :+= buildSQLObjectName(schema, tab)
-      } else if (el == "queryCTLastVersion") {
-        logger.info("Change Tracking: query last version")
-        params :+= changeTrackingLastVersion
-      } else if (el == "queryCTCurrentVersion") {
-        logger.info("Change Tracking: query current version")
-        params :+= ctCurrentVersion
-      } else {
-        params :+= el
+    for (param <- CTChangesQueryParams) {
+      param match {
+        case "defaultSQLTable" =>
+          logger.info("Change Tracking default param used: SQLTable")
+          params :+= buildSQLObjectName(schema, tab)
+        case "queryCTLastVersion" =>
+          logger.info("Change Tracking default param used: querying last version")
+          params :+= changeTrackingLastVersion
+        case "queryCTCurrentVersion" =>
+          logger.info("Change Tracking default param used: querying current version")
+          params :+= ctCurrentVersion
+        case _ =>
+          params :+= param
       }
     }
     params

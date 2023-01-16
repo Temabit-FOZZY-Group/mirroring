@@ -16,30 +16,33 @@
 
 package mirroring.services.databases
 
-import java.sql.DriverManager
 import org.apache.spark.sql.DataFrame
 import mirroring.builders._
 import wvlet.log.LogSupport
 
-class JdbcCTService(jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContext) with LogSupport {
+import java.sql.DriverManager
 
-  def loadData(): DataFrame = {
+class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) with LogSupport {
+
+  override def loadData(@annotation.unused _query: String = ""): DataFrame = {
     val connection = DriverManager.getConnection(url)
     try {
       val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(
-        jdbcContext.CTChangesQueryParams,
+        jdbcContext.ctChangesQueryParams,
         jdbcContext.schema,
         jdbcContext.table,
-        jdbcContext.changeTrackingLastVersion.toString(),
-        jdbcContext.ctCurrentVersion.toString(),
+        jdbcContext.ctLastVersion.toString,
+        jdbcContext.ctCurrentVersion.toString
       )
-      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(
-        JdbcBuilder.buildJDBCResultSet(
-          connection,
-          jdbcContext.CTChangesQuery,
-          params
+      val jdbcDF: DataFrame = JdbcBuilder
+        .buildDataFrameFromResultSet(
+          JdbcBuilder.buildJDBCResultSet(
+            connection,
+            jdbcContext.ctChangesQuery,
+            params
+          )
         )
-      )
+        .cache()
       // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
       jdbcDF
@@ -50,14 +53,14 @@ class JdbcCTService(jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContex
     }
   }
 
-  /**
-   * Returns value from the first row, first column of the result set as BigInt.
-   *
-   * Use to get Change Tracking version from the result set.
-   */
-  def getChangeTrackingVersionCustom(query: String,
-                                     parameters: Array[String] = Array[String](),
-                                    ): BigInt = {
+  /** Returns value from the first row, first column of the result set as BigInt.
+    *
+    * Use to get Change Tracking version from the result set.
+    */
+  def getChangeTrackingVersion(
+      query: String,
+      parameters: Array[String] = Array[String]()
+  ): BigInt = {
     val connection = DriverManager.getConnection(url)
     try {
       val rs = JdbcBuilder.buildJDBCResultSet(
@@ -72,5 +75,20 @@ class JdbcCTService(jdbcContext: JdbcContext) extends BaseJdbcService(jdbcContex
     } finally {
       connection.close()
     }
+  }
+
+  def getChangeTrackingVersion(query: String): BigInt = {
+    val jdbcDF: DataFrame = super[JdbcService].loadData(query).cache()
+
+    var version: BigInt = BigInt(0)
+
+    if (!jdbcDF.isEmpty) {
+      version = BigInt(
+        jdbcDF
+          .collect()(0)
+          .getLong(0)
+      )
+    }
+    version
   }
 }
