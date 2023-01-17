@@ -17,15 +17,14 @@
 package mirroring.services.databases
 
 import org.apache.spark.sql.functions.{col, date_format, date_trunc}
-import org.apache.spark.sql.{DataFrame, DataFrameReader, Encoders}
+import org.apache.spark.sql.{DataFrame, Encoders}
 import wvlet.log.LogSupport
 
 import scala.collection.mutable
 
-class JdbcPartitionedDecorator(
-    decoratedService: DbService,
+class JdbcPartitionedService(
     context: JdbcContext
-) extends DbServiceDecorator(decoratedService)
+) extends JdbcService(context)
     with LogSupport {
 
   private lazy val options: mutable.Map[String, String] = {
@@ -55,7 +54,7 @@ class JdbcPartitionedDecorator(
          |$query) as query
       """.stripMargin
 
-    var ds = decoratedService.loadData(sql).cache()
+    var ds = super[JdbcService].loadData(sql).cache()
     // Format timestamp to avoid Conversion failed when converting date and/or time from character string.
     if (ds.schema("lowerBound").dataType.simpleString == "timestamp") {
       ds = ds.withColumn(
@@ -81,7 +80,7 @@ class JdbcPartitionedDecorator(
          |$query) as query
       """.stripMargin
 
-    var ds = decoratedService.loadData(sql).cache()
+    var ds = super[JdbcService].loadData(sql).cache()
 
     // Format timestamp to avoid Conversion failed when converting date and/or time from character string.
     if (ds.schema("upperBound").dataType.simpleString == "timestamp") {
@@ -102,15 +101,13 @@ class JdbcPartitionedDecorator(
     }
   }
 
-  override def dfReader: DataFrameReader = {
-    decoratedService.dfReader.options(options)
-  }
-
   override def loadData(_query: String): DataFrame = {
     logger.info(s"Reading data with query: ${_query}")
-
     // setting query to use it in the lower/upper bounds calculations
     query = _query
-    dfReader.option("dbtable", _query).load()
+    val jdbcDF =
+      super[JdbcService].dfReader.options(options).option("dbtable", _query).load().cache()
+    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
+    jdbcDF
   }
 }

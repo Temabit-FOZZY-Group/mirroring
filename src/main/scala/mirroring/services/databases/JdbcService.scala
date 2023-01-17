@@ -17,17 +17,18 @@
 package mirroring.services.databases
 
 import org.apache.spark.sql.{DataFrame, DataFrameReader, Encoders}
+import mirroring.DatatypeMapping
 import mirroring.services.SparkService.spark
 import wvlet.log.LogSupport
-import mirroring.DatatypeMapping
+
 import scala.collection.mutable
 
-class JdbcService(jdbcContext: JdbcContext) extends DbService with LogSupport {
+class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
 
   val MssqlUser: String     = sys.env.getOrElse("MSSQL_USER", "")
   val MssqlPassword: String = sys.env.getOrElse("MSSQL_PASSWORD", "")
 
-  private lazy val url: String = {
+  lazy val url: String = {
     // If user/password are passed through environment variables, extract them and append to the url
     val sb = new mutable.StringBuilder(jdbcContext.url)
     if (
@@ -49,7 +50,7 @@ class JdbcService(jdbcContext: JdbcContext) extends DbService with LogSupport {
     sb.toString
   }
 
-  private lazy val customSchema: String = {
+  protected lazy val customSchema: String = {
     val sql =
       s"(select column_name, data_type from INFORMATION_SCHEMA.COLUMNS with (nolock) where " +
         s"TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}') as subq"
@@ -64,7 +65,9 @@ class JdbcService(jdbcContext: JdbcContext) extends DbService with LogSupport {
         .map(row => {
           if (DatatypeMapping.contains(row.getString(1))) {
             f"${row.getString(0)} ${DatatypeMapping.getDatatype(row.getString(1))}"
-          } else { "" }
+          } else {
+            ""
+          }
         })(Encoders.STRING)
         .filter(row => row.nonEmpty)
         .reduce(_ + ", " + _)
@@ -78,13 +81,14 @@ class JdbcService(jdbcContext: JdbcContext) extends DbService with LogSupport {
         ""
     }
   }
-
-  override def loadData(_query: String): DataFrame = {
+  def loadData(_query: String): DataFrame = {
     logger.info(s"Reading data with query: ${_query}")
-    dfReader.option("dbtable", _query).load()
+    val jdbcDF = dfReader.option("dbtable", _query).load().cache()
+    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
+    jdbcDF
   }
 
-  override def dfReader: DataFrameReader = {
+  def dfReader: DataFrameReader = {
     spark.read
       .format("jdbc")
       .option("url", url)

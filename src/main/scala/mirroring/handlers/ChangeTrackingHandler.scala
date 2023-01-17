@@ -18,35 +18,41 @@ package mirroring.handlers
 
 import io.delta.tables.DeltaTable
 import mirroring.Config
-import org.apache.spark.sql.DataFrame
+import mirroring.builders._
 import mirroring.services.SparkService.spark
-import mirroring.services.databases.{DbService, JdbcService}
+import mirroring.services.databases.JdbcCTService
 import wvlet.log.LogSupport
-import mirroring.builders.{ChangeTrackingBuilder, FilterBuilder}
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
 
+  private lazy val jdbcContext                  = config.getJdbcContext
+  private lazy val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
+
   lazy val ctCurrentVersion: BigInt = {
-    val queryGetCTCurrentVersion: String =
-      ChangeTrackingBuilder.currentVersionQuery
     logger.info(s"Querying current change tracking version from the source...")
-    val version = getChangeTrackingVersion(queryGetCTCurrentVersion, config)
+    logger.info("Change Tracking: use default query to get CTCurrentVersion")
+    val version: BigInt =
+      jdbcCTService.getChangeTrackingVersion(ChangeTrackingBuilder.currentVersionQuery)
+
     logger.info(s"Current CT version for the MSSQL table: $version")
     version
   }
 
-  private lazy val ctMinValidVersion: BigInt = {
-    val queryGetMinValidVersion: String =
-      ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab)
+  protected lazy val ctMinValidVersion: BigInt = {
     logger.info(
       s"Querying minimum valid change tracking version from the source..."
     )
-    val version = getChangeTrackingVersion(queryGetMinValidVersion, config)
+    logger.info("Change Tracking: use default query to get ChangeTrackingMinValidVersion")
+    val version: BigInt =
+      jdbcCTService.getChangeTrackingVersion(
+        ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab)
+      )
+
     logger.info(s"Min valid version for the MSSQL table: $version")
     version
   }
 
-  private lazy val ctDeltaVersion: BigInt = {
+  protected lazy val ctDeltaVersion: BigInt = {
     val userMeta = DeltaTable
       .forPath(spark, config.pathToSave)
       .history(1)
@@ -75,7 +81,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
     ctCurrentVersion = ctCurrentVersion
   )
 
-  private lazy val changeTrackingLastVersion: BigInt = {
+  lazy val changeTrackingLastVersion: BigInt = {
     var changeTrackingLastVersion: BigInt = -1
     try {
       changeTrackingLastVersion = ctDeltaVersion
@@ -91,25 +97,6 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
         changeTrackingLastVersion = ctMinValidVersion
         changeTrackingLastVersion
     }
-  }
-
-  def getChangeTrackingVersion(query: String, config: Config): BigInt = {
-
-    val jdbcContext            = config.getJdbcContext
-    val jdbcService: DbService = new JdbcService(jdbcContext)
-    val jdbcDF: DataFrame      = jdbcService.loadData(query).cache()
-
-    var version: BigInt = BigInt(0)
-
-    if (!jdbcDF.isEmpty) {
-      version = BigInt(
-        jdbcDF
-          .collect()(0)
-          .getLong(0)
-      )
-    }
-
-    version
   }
 
   def query: String = {

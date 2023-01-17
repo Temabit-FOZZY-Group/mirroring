@@ -21,11 +21,19 @@ case class JdbcContext(
     private val inTable: String,
     private val inSchema: String,
     private val numPart: String,
-    private val splitby: String
+    private val splitby: String,
+    var _changeTrackingLastVersion: Option[BigInt] = None,
+    var _ctCurrentVersion: Option[BigInt] = None,
+    private val _CTChangesQuery: String,
+    private val _CTChangesQueryParams: Array[String]
 ) {
-  val url: String             = jdbcUrl
-  val table: String           = inTable
-  val schema: String          = inSchema
-  val partitionColumn: String = splitby
-  val numPartitions: String   = numPart
+  val url: String                         = jdbcUrl
+  val table: String                       = inTable
+  val schema: String                      = inSchema
+  val partitionColumn: String             = splitby
+  val numPartitions: String               = numPart
+  lazy val ctLastVersion: BigInt          = _changeTrackingLastVersion.get
+  lazy val ctCurrentVersion: BigInt       = _ctCurrentVersion.get
+  val ctChangesQuery: String              = _CTChangesQuery
+  val ctChangesQueryParams: Array[String] = _CTChangesQueryParams
 }

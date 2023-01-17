@@ -17,12 +17,12 @@
 package mirroring
 
 import org.apache.spark.sql.DataFrame
-import wvlet.log.LogSupport
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
-import mirroring.handlers.ChangeTrackingHandler
-import mirroring.services.databases.{JdbcPartitionedDecorator, JdbcService, DbService}
+import mirroring.handlers.{ChangeTrackingHandler, CustomChangeTrackingHandler}
+import mirroring.services.databases.{JdbcCTService, JdbcPartitionedService, JdbcService}
 import mirroring.services.writer.{MergeService, ChangeTrackingService, DeltaService, WriterContext}
 import mirroring.services.{SparkService, SqlService, DeltaTableService}
+import wvlet.log.LogSupport
 
 object Runner extends LogSupport {
 
@@ -46,32 +46,46 @@ object Runner extends LogSupport {
     logger.info("Starting mirroring-lib...")
     val config: Config = initConfig(args)
     setSparkContext(config)
-    val jdbcContext                  = config.getJdbcContext
-    val writerContext: WriterContext = config.getWriterContext
-    var query: String                = config.query
-    val changeTrackingHandler        = new ChangeTrackingHandler(config)
+    val jdbcContext                                  = config.getJdbcContext
+    val writerContext: WriterContext                 = config.getWriterContext
+    var query: String                                = config.query
+    var changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(config)
 
     if (config.isChangeTrackingEnabled) {
+      if (config.CTChangesQuery.nonEmpty) {
+        changeTrackingHandler = new CustomChangeTrackingHandler(config)
+      }
       query = changeTrackingHandler.query
       writerContext.ctCurrentVersion = changeTrackingHandler.ctCurrentVersion
+      jdbcContext._ctCurrentVersion = Some(changeTrackingHandler.ctCurrentVersion)
+      jdbcContext._changeTrackingLastVersion = Some(changeTrackingHandler.changeTrackingLastVersion)
     }
-    var jdbcService: DbService = new JdbcService(jdbcContext)
+
+    var jdbcService: JdbcService = new JdbcService(jdbcContext)
+
     if (config.splitBy.nonEmpty) {
-      jdbcService = new JdbcPartitionedDecorator(jdbcService, jdbcContext)
+      jdbcService = new JdbcPartitionedService(jdbcContext)
     }
 
-    val jdbcDF: DataFrame = jdbcService.loadData(query).cache()
-    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
-    val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
-    jdbcDF.unpersist()
-    var writerService: DeltaService = new DeltaService(writerContext)
+    if (config.isChangeTrackingEnabled && config.CTChangesQuery.nonEmpty) {
+      jdbcService = new JdbcCTService(jdbcContext)
+    }
 
+    val jdbcDF: DataFrame = jdbcService.loadData(query)
+    val ds                = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
+    jdbcDF.unpersist()
+
+    var writerService: DeltaService = new DeltaService(writerContext)
     if (config.isChangeTrackingEnabled) {
       writerService = new ChangeTrackingService(writerContext)
     } else if (config.useMerge) {
       writerService = new MergeService(writerContext)
     }
     writerService.write(data = ds)
+    deltaPostProcessing(config, ds)
+  }
+
+  def deltaPostProcessing(config: Config, ds: DataFrame): Unit = {
     if (config.zorderby_col.nonEmpty) {
       val replaceWhere =
         FilterBuilder.buildReplaceWherePredicate(
