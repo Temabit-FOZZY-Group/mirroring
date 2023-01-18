@@ -33,14 +33,14 @@ headerLicense := Some(
   )
 )
 name := "DeltaFlow"
-version := "1.0.3"
-scalaVersion := "2.12.10"
-val sparkVersion = "3.2.2"
+scalaVersion := "2.13.5"
+val sparkVersion = "3.2.3"
+version := s"1.0.3-spark${sparkVersion}-scala${scalaVersion.value}"
 libraryDependencies ++= Seq(
   "org.apache.spark"   %% "spark-core"         % sparkVersion % "provided",
   "org.apache.spark"   %% "spark-sql"          % sparkVersion % "provided",
   "org.apache.spark"   %% "spark-hive"         % sparkVersion % "provided",
-  "io.delta"           %% "delta-core"         % "2.0.0"      % "provided",
+  "io.delta"           %% "delta-core"         % "2.0.1"      % "provided",
   "org.wvlet.airframe" %% "airframe-log"       % "22.7.3",
   "org.wvlet.airframe" %% "airframe-json"      % "22.8.0",
   "org.wvlet.airframe" %% "airframe-codec"     % "22.8.0",
