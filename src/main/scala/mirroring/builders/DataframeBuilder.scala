@@ -40,10 +40,10 @@ object DataframeBuilder {
       jdbcDF: DataFrame,
       ctx: DataframeBuilderContext
   ): DataFrame = {
-    
+
     val spark = SparkService.spark
-    var df = jdbcDF
-    
+    var df    = jdbcDF
+
     if (ctx.generateColumn) {
       jdbcDF.createOrReplaceTempView(s"${ctx.targetTableName}_tempView")
       val generatedDs = spark.sql(
@@ -55,7 +55,7 @@ object DataframeBuilder {
         col(ctx.generatedColumnName).cast(ctx.generatedColumnType)
       )
     }
-    
+
     df = renameColumns(df)
     for (column <- df.columns) {
       if (df.schema(column).dataType.simpleString.contains("date")) {
