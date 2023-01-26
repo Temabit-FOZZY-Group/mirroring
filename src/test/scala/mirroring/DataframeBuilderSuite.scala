@@ -99,7 +99,8 @@ class DataframeBuilderSuite extends AnyFunSuite {
       ("hour", "StringType"),
       ("content", "StringType"),
       ("ts", "DateType"),
-      ("test", "StringType")
+      ("test", "StringType"),
+      ("_platform_ingested_at", "TimestampType")
     )
     assert(resultDs.dtypes.sameElements(expectedSchema))
     assert(resultDs.select("test").take(1)(0).getString(0).equals("5"))
