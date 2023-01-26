@@ -59,7 +59,8 @@ object ConfigBuilder {
       "ct_min_valid_version_query"  -> "",
       "ct_min_valid_version_params" -> "",
       "ct_current_version_query"    -> "",
-      "ct_current_version_params"   -> ""
+      "ct_current_version_params"   -> "",
+      "disable_platform_ingested_at"   -> "false"
     )
     arguments.foreach { arg =>
       val key   = arg.split("==")(0)
@@ -108,7 +109,8 @@ object ConfigBuilder {
       CTMinValidVersionQuery = arguments("ct_min_valid_version_query"),
       _CTMinValidVersionParams = arguments("ct_min_valid_version_params"),
       CTCurrentVersionQuery = arguments("ct_current_version_query"),
-      _CTCurrentVersionParams = arguments("ct_current_version_params")
+      _CTCurrentVersionParams = arguments("ct_current_version_params"),
+      disablePlatformIngestedAt = arguments("disable_platform_ingested_at").toBoolean
     )
   }
 

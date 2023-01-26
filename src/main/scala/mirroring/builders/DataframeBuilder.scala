@@ -83,8 +83,10 @@ object DataframeBuilder {
       }
     }
 
-    // Generate _platform_ingested_at column
-    df = df.withColumn("_platform_ingested_at", current_timestamp())
+    if (!ctx.disablePlatformIngestedAt) {
+      // Generate _platform_ingested_at column
+      df = df.withColumn("_platform_ingested_at", current_timestamp())
+    }
 
     df
   }

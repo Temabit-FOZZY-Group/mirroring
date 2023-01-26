@@ -67,7 +67,8 @@ case class Config(
     CTMinValidVersionQuery: String,
     _CTMinValidVersionParams: String,
     CTCurrentVersionQuery: String,
-    _CTCurrentVersionParams: String
+    _CTCurrentVersionParams: String,
+    disablePlatformIngestedAt: Boolean
 ) extends LogSupport {
 
   FlowLogger.init(schema, tab, logLvl)
@@ -171,7 +172,8 @@ case class Config(
       generateColumn = generateColumn,
       generatedColumnExp = generatedColumnExp,
       generatedColumnName = generatedColumnName,
-      generatedColumnType = generatedColumnType
+      generatedColumnType = generatedColumnType,
+      disablePlatformIngestedAt = disablePlatformIngestedAt
     )
   }
 
@@ -235,7 +237,8 @@ case class Config(
        |CTMinValidVersionQuery - $CTMinValidVersionQuery,
        |CTMinValidVersionParams - [${CTMinValidVersionParams.mkString(", ")}],
        |CTCurrentVersionQuery - $CTCurrentVersionQuery,
-       |CTCurrentVersionParams - [${CTCurrentVersionParams.mkString(", ")}]
+       |CTCurrentVersionParams - [${CTCurrentVersionParams.mkString(", ")}],
+       |disable_platform_ingested_at - $disablePlatformIngestedAt
        |""".stripMargin
 
   }

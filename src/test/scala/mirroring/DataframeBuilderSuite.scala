@@ -90,7 +90,8 @@ class DataframeBuilderSuite extends AnyFunSuite {
       generateColumn = true,
       generatedColumnExp = "day(date)",
       generatedColumnName = "test",
-      generatedColumnType = "string"
+      generatedColumnType = "string",
+      disablePlatformIngestedAt = false
     )
     val resultDs = DataframeBuilder.buildDataFrame(df, context)
     val expectedSchema = Array(

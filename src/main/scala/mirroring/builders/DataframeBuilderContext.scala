@@ -24,5 +24,6 @@ case class DataframeBuilderContext(
     generateColumn: Boolean,
     generatedColumnExp: String,
     generatedColumnName: String,
-    generatedColumnType: String
+    generatedColumnType: String,
+    disablePlatformIngestedAt: Boolean
 )

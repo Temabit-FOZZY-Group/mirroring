@@ -49,6 +49,7 @@ jdbcUrl==jdbc:jtds:sqlserver://server\;instance=inst\;domain=dmn\;useNTLMv2=true
 * **ct_min_valid_version_params** `optional` Parameters for `ct_min_valid_version_query`.
 * **ct_current_version_query**	  `optional` custom query to get Change Tracking changes, e.g. `exec dbo.getCTChanges ?, ?, ?`.
 * **ct_current_version_params**	  `optional` Parameters for `ct_current_version_query`.
+* **disable_platform_ingested_at**`optional` Set `true` if you want to disable autocreation column `_platform_ingested_at` on target.
 
 ### Reserved words for parameters
 
