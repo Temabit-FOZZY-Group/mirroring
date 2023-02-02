@@ -17,66 +17,54 @@
 package mirroring.builders
 
 import mirroring.Config
-import wvlet.log.LogSupport
 
-object ConfigBuilder extends LogSupport {
-
-  private val mapArgs = scala.collection.mutable.Map[String, String](
-    "path_to_save"                 -> "",
-    "tab"                          -> "",
-    "schema"                       -> "dbo",
-    "where"                        -> "",
-    "query"                        -> "",
-    "jdbcUrl"                      -> "",
-    "mode"                         -> "errorifexists",
-    "numpart"                      -> "",
-    "splitby"                      -> "",
-    "calc_min_dt"                  -> "",
-    "calc_max_dt"                  -> "",
-    "dtflt"                        -> "",
-    "exec_date"                    -> "",
-    "write_partitioned"            -> "false",
-    "partition_col"                -> "",
-    "use_merge"                    -> "false",
-    "merge_keys"                   -> "",
-    "hive_db"                      -> "",
-    "hive_db_location"             -> "s3a://warehouse/",
-    "generate_column"              -> "false",
-    "generated_column_name"        -> "",
-    "generated_column_exp"         -> "",
-    "generated_column_type"        -> "",
-    "timezone"                     -> Config.Timezone,
-    "force_partition"              -> "false",
-    "change_tracking"              -> "false",
-    "primary_key"                  -> "",
-    "zorderby_col"                 -> "",
-    "log_lvl"                      -> "info",
-    "log_spark_lvl"                -> "WARN",
-    "ct_changes_query"             -> "",
-    "ct_changes_query_params"      -> "",
-    "ct_min_valid_version_query"   -> "",
-    "ct_min_valid_version_params"  -> "",
-    "ct_current_version_query"     -> "",
-    "ct_current_version_params"    -> "",
-    "disable_platform_ingested_at" -> "false"
-  )
-
+object ConfigBuilder {
   def parse(
       arguments: Array[String]
   ): scala.collection.mutable.Map[String, String] = {
+    val mapArgs = scala.collection.mutable.Map[String, String](
+      "path_to_save"                -> "",
+      "tab"                         -> "",
+      "schema"                      -> "dbo",
+      "where"                       -> "",
+      "query"                       -> "",
+      "jdbcUrl"                     -> "",
+      "mode"                        -> "errorifexists",
+      "numpart"                     -> "",
+      "splitby"                     -> "",
+      "calc_min_dt"                 -> "",
+      "calc_max_dt"                 -> "",
+      "dtflt"                       -> "",
+      "exec_date"                   -> "",
+      "write_partitioned"           -> "false",
+      "partition_col"               -> "",
+      "use_merge"                   -> "false",
+      "merge_keys"                  -> "",
+      "hive_db"                     -> "",
+      "hive_db_location"            -> "s3a://warehouse/",
+      "generate_column"             -> "false",
+      "generated_column_name"       -> "",
+      "generated_column_exp"        -> "",
+      "generated_column_type"       -> "",
+      "timezone"                    -> Config.Timezone,
+      "force_partition"             -> "false",
+      "change_tracking"             -> "false",
+      "primary_key"                 -> "",
+      "zorderby_col"                -> "",
+      "log_lvl"                     -> "info",
+      "log_spark_lvl"               -> "WARN",
+      "ct_changes_query"            -> "",
+      "ct_changes_query_params"     -> "",
+      "ct_min_valid_version_query"  -> "",
+      "ct_min_valid_version_params" -> "",
+      "ct_current_version_query"    -> "",
+      "ct_current_version_params"   -> ""
+    )
     arguments.foreach { arg =>
-      val key = arg.split("==")(0)
-      try {
-        val value = arg.split("==")(1)
-        if (value != "None") {
-          mapArgs.update(key, value)
-        }
-      } catch {
-        case e: java.lang.ArrayIndexOutOfBoundsException =>
-          logger.error(s"Missing value for key $key")
-          throw e
-        case e: Exception =>
-          throw e
+      val key   = arg.split("==")(0)
+      val value = arg.split("==")(1)
+      if (value != "None") {
+        mapArgs.update(key, value)
       }
     }
     mapArgs
