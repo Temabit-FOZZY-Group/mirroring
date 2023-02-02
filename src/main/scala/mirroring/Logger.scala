@@ -16,12 +16,15 @@
 
 package mirroring
 
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import mirroring.services.SparkService
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogFormatter.appendStackTrace
 import wvlet.log.{LogFormatter, LogLevel, LogRecord, Logger}
 
 case class Record(
+    timestamp: String,
     level: String,
     sparkApplicationId: String,
     sparkApplicationAttempt: String,
@@ -35,9 +38,11 @@ object FlowLogger {
   def init(schema: String, tab: String, logLvl: String): Unit = {
     Logger.init
     object CustomLogFormatter extends LogFormatter {
+      val datetimeFormatter = new SimpleDateFormat("yy/MM/dd hh:mm:ss")
       override def formatLog(logRecord: LogRecord): String = {
         val spark = SparkService.spark
         val record = Record(
+          timestamp = datetimeFormatter.format(getCurrentTimestamp),
           level = logRecord.level.toString,
           sparkApplicationId = if (spark != null) spark.sparkContext.applicationId else "null",
           sparkApplicationAttempt = spark.sparkContext.applicationAttemptId.getOrElse("1"),
@@ -52,6 +57,10 @@ object FlowLogger {
     }
     Logger.setDefaultLogLevel(LogLevel.apply(logLvl))
     Logger.setDefaultFormatter(CustomLogFormatter)
+  }
+
+  private def getCurrentTimestamp: java.util.Date = {
+    Calendar.getInstance().getTime
   }
 
 }
