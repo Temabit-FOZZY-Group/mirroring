@@ -43,8 +43,10 @@ object Runner extends LogSupport {
   }
 
   def main(args: Array[String]): Unit = {
-    logger.info("Starting mirroring-lib...")
+    // preliminary FlowLogger initialization in order to log config building
+    FlowLogger.init("schema", "tab", "info")
     val config: Config = initConfig(args)
+    logger.info("Starting mirroring-lib...")
     setSparkContext(config)
     val jdbcContext                                  = config.getJdbcContext
     val writerContext: WriterContext                 = config.getWriterContext
