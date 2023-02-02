@@ -29,6 +29,9 @@ class MergeService(context: WriterContext) extends DeltaService(context) with Lo
     if (DeltaTable.isDeltaTable(spark, context.path)) {
       logger.info("Target table already exists. Merging data...")
 
+      val columns_map: Map[String, String] =
+        (data.columns zip data.columns.map(col => s"source.`${col}`")).toMap
+
       DeltaTable
         .forPath(spark, context.path)
         .as(Config.TargetAlias)
@@ -41,9 +44,9 @@ class MergeService(context: WriterContext) extends DeltaService(context) with Lo
           )
         )
         .whenMatched
-        .updateAll()
+        .updateExpr(columns_map)
         .whenNotMatched
-        .insertAll()
+        .insertExpr(columns_map)
         .execute()
     } else {
       logger.info("Target table doesn't exist yet. Initializing table...")
