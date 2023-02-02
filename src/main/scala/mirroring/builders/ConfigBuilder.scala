@@ -20,7 +20,7 @@ import mirroring.Config
 
 object ConfigBuilder {
 
-  private val mapArgs = scala.collection.mutable.Map[String, String](
+  private val mapArgsDefault = scala.collection.mutable.Map[String, String](
     "path_to_save"                 -> "",
     "tab"                          -> "",
     "schema"                       -> "dbo",
@@ -63,6 +63,7 @@ object ConfigBuilder {
   def parse(
       arguments: Array[String]
   ): scala.collection.mutable.Map[String, String] = {
+    val mapArgs = mapArgsDefault.clone()
     arguments.foreach { arg =>
       val key   = arg.split("==")(0)
       val value = arg.split("==")(1)
