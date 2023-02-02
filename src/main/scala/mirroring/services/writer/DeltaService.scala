@@ -32,7 +32,6 @@ class DeltaService(context: WriterContext) extends LogSupport {
     var writer = data.write
       .mode(context.mode)
       .format("delta")
-      .option("mergeSchema", "true")
       .option("userMetadata", context.ctCurrentVersion)
 
     val replaceWhere = FilterBuilder.buildReplaceWherePredicate(
