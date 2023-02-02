@@ -17,8 +17,9 @@
 package mirroring.builders
 
 import mirroring.Config
+import wvlet.log.LogSupport
 
-object ConfigBuilder {
+object ConfigBuilder extends LogSupport {
 
   private val mapArgsDefault = scala.collection.mutable.Map[String, String](
     "path_to_save"                 -> "",
@@ -65,10 +66,18 @@ object ConfigBuilder {
   ): scala.collection.mutable.Map[String, String] = {
     val mapArgs = mapArgsDefault.clone()
     arguments.foreach { arg =>
-      val key   = arg.split("==")(0)
-      val value = arg.split("==")(1)
-      if (value != "None") {
-        mapArgs.update(key, value)
+      val key = arg.split("==")(0)
+      try {
+        val value = arg.split("==")(1)
+        if (value != "None") {
+          mapArgs.update(key, value)
+        }
+      } catch {
+        case e: java.lang.ArrayIndexOutOfBoundsException =>
+          logger.error(s"Missing value for key $key")
+          throw e
+        case e: Exception =>
+          throw e
       }
     }
     mapArgs
