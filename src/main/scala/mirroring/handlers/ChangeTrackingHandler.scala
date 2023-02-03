@@ -30,29 +30,41 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
 
   lazy val ctCurrentVersion: BigInt = {
     logger.info(s"Querying current change tracking version from the source...")
-    logger.info("Change Tracking: use default query to get CTCurrentVersion")
-    val version: BigInt =
+    val version: BigInt = if (config.CTCurrentVersionQuery.isEmpty) {
+      logger.info("Change Tracking: use default query to get CTCurrentVersion")
       jdbcCTService.getChangeTrackingVersion(ChangeTrackingBuilder.currentVersionQuery)
-
+    } else {
+      logger.info("Change Tracking: use custom CTCurrentVersionQuery")
+      jdbcCTService.getChangeTrackingVersion(
+        config.CTCurrentVersionQuery,
+        config.CTCurrentVersionParams
+      )
+    }
     logger.info(s"Current CT version for the MSSQL table: $version")
     version
   }
 
-  protected lazy val ctMinValidVersion: BigInt = {
+  private lazy val ctMinValidVersion: BigInt = {
     logger.info(
       s"Querying minimum valid change tracking version from the source..."
     )
-    logger.info("Change Tracking: use default query to get ChangeTrackingMinValidVersion")
-    val version: BigInt =
+    val version: BigInt = if (config.CTMinValidVersionQuery.isEmpty) {
+      logger.info("Change Tracking: use default query to get ChangeTrackingMinValidVersion")
       jdbcCTService.getChangeTrackingVersion(
         ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab)
       )
-
+    } else {
+      logger.info("Change Tracking: use custom CTMinValidVersionQuery")
+      jdbcCTService.getChangeTrackingVersion(
+        config.CTMinValidVersionQuery,
+        config.CTMinValidVersionParams
+      )
+    }
     logger.info(s"Min valid version for the MSSQL table: $version")
     version
   }
 
-  protected lazy val ctDeltaVersion: BigInt = {
+  private lazy val ctDeltaVersion: BigInt = {
     val userMeta = DeltaTable
       .forPath(spark, config.pathToSave)
       .history(1)
@@ -90,7 +102,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
       )
       changeTrackingLastVersion
     } catch {
-      case e @ (_: java.lang.NumberFormatException | _: java.lang.NullPointerException) =>
+      case _ @(_: java.lang.NumberFormatException | _: java.lang.NullPointerException) =>
         logger.warn(
           "No CT version found in the latest version of the userMetadata. CHANGE_TRACKING_MIN_VALID_VERSION will be used."
         )

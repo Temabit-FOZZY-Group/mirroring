@@ -18,7 +18,7 @@ package mirroring
 
 import org.apache.spark.sql.DataFrame
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
-import mirroring.handlers.{ChangeTrackingHandler, CustomChangeTrackingHandler}
+import mirroring.handlers.ChangeTrackingHandler
 import mirroring.services.databases.{JdbcCTService, JdbcPartitionedService, JdbcService}
 import mirroring.services.writer.{MergeService, ChangeTrackingService, DeltaService, WriterContext}
 import mirroring.services.{SparkService, SqlService, DeltaTableService}
@@ -51,30 +51,28 @@ object Runner extends LogSupport {
     val jdbcContext                                  = config.getJdbcContext
     val writerContext: WriterContext                 = config.getWriterContext
     var query: String                                = config.query
-    var changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(config)
+    val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(config)
 
     if (config.isChangeTrackingEnabled) {
-      if (config.CTChangesQuery.nonEmpty) {
-        changeTrackingHandler = new CustomChangeTrackingHandler(config)
-      }
       query = changeTrackingHandler.query
       writerContext.ctCurrentVersion = changeTrackingHandler.ctCurrentVersion
       jdbcContext._ctCurrentVersion = Some(changeTrackingHandler.ctCurrentVersion)
       jdbcContext._changeTrackingLastVersion = Some(changeTrackingHandler.changeTrackingLastVersion)
     }
 
-    var jdbcService: JdbcService = new JdbcService(jdbcContext)
-
-    if (config.splitBy.nonEmpty) {
-      jdbcService = new JdbcPartitionedService(jdbcContext)
+    val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
+      var jdbcService: JdbcService = new JdbcService(jdbcContext)
+      if (config.splitBy.nonEmpty) {
+        jdbcService = new JdbcPartitionedService(jdbcContext)
+      }
+      jdbcService.loadData(query)
+    } else {
+      logger.info("Change Tracking: use custom ctChangesQuery")
+      val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
+      jdbcCTService.loadData()
     }
 
-    if (config.isChangeTrackingEnabled && config.CTChangesQuery.nonEmpty) {
-      jdbcService = new JdbcCTService(jdbcContext)
-    }
-
-    val jdbcDF: DataFrame = jdbcService.loadData(query)
-    val ds                = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
+    val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
 
     var writerService: DeltaService = new DeltaService(writerContext)
