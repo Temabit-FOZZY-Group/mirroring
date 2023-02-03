@@ -90,7 +90,8 @@ class DataframeBuilderSuite extends AnyFunSuite {
       generateColumn = true,
       generatedColumnExp = "day(date)",
       generatedColumnName = "test",
-      generatedColumnType = "string"
+      generatedColumnType = "string",
+      disablePlatformIngestedAt = false
     )
     val resultDs = DataframeBuilder.buildDataFrame(df, context)
     val expectedSchema = Array(
@@ -99,7 +100,8 @@ class DataframeBuilderSuite extends AnyFunSuite {
       ("hour", "StringType"),
       ("content", "StringType"),
       ("ts", "DateType"),
-      ("test", "StringType")
+      ("test", "StringType"),
+      ("_platform_ingested_at", "TimestampType")
     )
     assert(resultDs.dtypes.sameElements(expectedSchema))
     assert(resultDs.select("test").take(1)(0).getString(0).equals("5"))

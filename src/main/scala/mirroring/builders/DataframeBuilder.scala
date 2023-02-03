@@ -17,7 +17,7 @@
 package mirroring.builders
 
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.{col, to_date, to_utc_timestamp}
+import org.apache.spark.sql.functions.{col, to_date, to_utc_timestamp, current_timestamp}
 import mirroring.services.SparkService
 import mirroring.Config
 
@@ -40,10 +40,12 @@ object DataframeBuilder {
       jdbcDF: DataFrame,
       ctx: DataframeBuilderContext
   ): DataFrame = {
-    var df = jdbcDF
+
+    val spark = SparkService.spark
+    var df    = jdbcDF
+
     if (ctx.generateColumn) {
       jdbcDF.createOrReplaceTempView(s"${ctx.targetTableName}_tempView")
-      val spark = SparkService.spark
       val generatedDs = spark.sql(
         s"select *, ${ctx.generatedColumnExp} as" +
           s" ${ctx.generatedColumnName} from ${ctx.targetTableName}_tempView"
@@ -53,6 +55,7 @@ object DataframeBuilder {
         col(ctx.generatedColumnName).cast(ctx.generatedColumnType)
       )
     }
+
     df = renameColumns(df)
     for (column <- df.columns) {
       if (df.schema(column).dataType.simpleString.contains("date")) {
@@ -61,6 +64,7 @@ object DataframeBuilder {
         df = df.withColumn(column, to_utc_timestamp(col(column), ctx.timezone))
       }
     }
+
     if (ctx.writePartitioned) {
       for (
         partitionColumn <- ctx.partitionColumns
@@ -78,6 +82,12 @@ object DataframeBuilder {
         df = df.withColumn(partitionColumn, resultColumn)
       }
     }
+
+    if (!ctx.disablePlatformIngestedAt) {
+      // Generate _platform_ingested_at column
+      df = df.withColumn("_platform_ingested_at", current_timestamp())
+    }
+
     df
   }
 }
