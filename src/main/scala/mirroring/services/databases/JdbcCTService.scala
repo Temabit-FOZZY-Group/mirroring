@@ -26,14 +26,14 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
 
   override def loadData(@annotation.unused _query: String = ""): DataFrame = {
     val connection = DriverManager.getConnection(url)
+    val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(
+      jdbcContext.ctChangesQueryParams,
+      jdbcContext.schema,
+      jdbcContext.table,
+      jdbcContext.ctLastVersion.toString,
+      jdbcContext.ctCurrentVersion.toString
+    )
     try {
-      val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(
-        jdbcContext.ctChangesQueryParams,
-        jdbcContext.schema,
-        jdbcContext.table,
-        jdbcContext.ctLastVersion.toString,
-        jdbcContext.ctCurrentVersion.toString
-      )
       val jdbcDF: DataFrame = JdbcBuilder
         .buildDataFrameFromResultSet(
           JdbcBuilder.buildJDBCResultSet(
@@ -47,7 +47,11 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
       jdbcDF
     } catch {
-      case e: Exception => throw e
+      case e: Exception =>
+        logger.error(
+          s"Error executing ${jdbcContext.ctChangesQuery} with params: ${params.mkString}"
+        )
+        throw e
     } finally {
       connection.close()
     }
@@ -71,7 +75,9 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
       rs.next()
       rs.getLong(1)
     } catch {
-      case e: Exception => throw e
+      case e: Exception =>
+        logger.error(s"Error getting Change Tracking version using query $query")
+        throw e
     } finally {
       connection.close()
     }
