@@ -30,7 +30,7 @@ class MergeService(context: WriterContext) extends DeltaService(context) with Lo
       logger.info("Target table already exists. Merging data...")
 
       val columns_map: Map[String, String] =
-        (data.columns zip data.columns.map(col => s"source.`${col}`")).toMap
+        (data.columns zip data.columns.map(col => s"source.`$col`")).toMap
 
       DeltaTable
         .forPath(spark, context.path)

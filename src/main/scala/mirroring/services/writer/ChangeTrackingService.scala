@@ -34,16 +34,17 @@ class ChangeTrackingService(
   private val insertCondition =
     s"${Config.SourceAlias}.SYS_CHANGE_OPERATION in ('I', 'U')"
   private val sourceColPrefix = "SYS_CHANGE_PK_"
-  private val excludeColumns  = context.primaryKey.map(col => s"${sourceColPrefix}${col}")
+  private val excludeColumns  = context.primaryKey.map(col => s"$sourceColPrefix$col")
 
   override def write(data: DataFrame): Unit = {
     if (DeltaTable.isDeltaTable(spark, context.path)) {
 
       logger.info("Target table already exists. Merging data...")
 
+      // filter PK columns with sourceColPrefix and make a map for merge
       val columns = data.columns.filterNot(excludeColumns.contains(_))
       val columns_map: Map[String, String] =
-        (columns zip columns.map(col => s"source.`${col}`")).toMap
+        (columns zip columns.map(col => s"source.`$col`")).toMap
 
       spark.conf.set(
         "spark.databricks.delta.commitInfo.userMetadata",
