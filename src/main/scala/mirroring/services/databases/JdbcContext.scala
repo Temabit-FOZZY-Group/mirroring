@@ -22,7 +22,7 @@ case class JdbcContext(
     private val inSchema: String,
     private val numPart: String,
     private val splitby: String,
-    var _changeTrackingLastVersion: Option[BigInt] = None,
+    var _changeTrackingLastVersion: () => Option[BigInt],
     var _ctCurrentVersion: Option[BigInt] = None,
     private val _CTChangesQuery: String,
     private val _CTChangesQueryParams: Array[String]
@@ -32,7 +32,7 @@ case class JdbcContext(
   val schema: String                      = inSchema
   val partitionColumn: String             = splitby
   val numPartitions: String               = numPart
-  lazy val ctLastVersion: BigInt          = _changeTrackingLastVersion.get
+  lazy val ctLastVersion: BigInt          = _changeTrackingLastVersion().get
   lazy val ctCurrentVersion: BigInt       = _ctCurrentVersion.get
   val ctChangesQuery: String              = _CTChangesQuery
   val ctChangesQueryParams: Array[String] = _CTChangesQueryParams

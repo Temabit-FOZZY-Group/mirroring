@@ -88,12 +88,12 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
     primaryKeySelectClause = primaryKeySelectClause,
     schema = config.schema,
     sourceTable = config.tab,
-    changeTrackingLastVersion = changeTrackingLastVersion,
+    changeTrackingLastVersion = changeTrackingLastVersion(),
     primaryKeyOnClause = primaryKeyOnClause,
     ctCurrentVersion = ctCurrentVersion
   )
 
-  lazy val changeTrackingLastVersion: BigInt = {
+  def changeTrackingLastVersion(): BigInt = {
     var changeTrackingLastVersion: BigInt = -1
     try {
       changeTrackingLastVersion = ctDeltaVersion

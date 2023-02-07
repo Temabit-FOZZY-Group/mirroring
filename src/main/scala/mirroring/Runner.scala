@@ -57,7 +57,8 @@ object Runner extends LogSupport {
       query = changeTrackingHandler.query
       writerContext.ctCurrentVersion = changeTrackingHandler.ctCurrentVersion
       jdbcContext._ctCurrentVersion = Some(changeTrackingHandler.ctCurrentVersion)
-      jdbcContext._changeTrackingLastVersion = Some(changeTrackingHandler.changeTrackingLastVersion)
+      jdbcContext._changeTrackingLastVersion = () =>
+        Some(changeTrackingHandler.changeTrackingLastVersion())
     }
 
     val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
