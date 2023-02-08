@@ -185,7 +185,8 @@ case class Config(
       numPart = numPart,
       splitby = splitBy,
       _CTChangesQuery = CTChangesQuery,
-      _CTChangesQueryParams = CTChangesQueryParams
+      _CTChangesQueryParams = CTChangesQueryParams,
+      _changeTrackingLastVersion = () => None
     )
   }
 
