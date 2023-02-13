@@ -35,7 +35,7 @@ headerLicense := Some(
 name := "DeltaFlow"
 scalaVersion := "2.13.5"
 val sparkVersion = "3.2.3"
-version := s"1.0.4-spark${sparkVersion}-scala${scalaVersion.value}"
+version := s"1.0.5-spark${sparkVersion}-scala${scalaVersion.value}"
 libraryDependencies ++= Seq(
   "org.apache.spark"   %% "spark-core"         % sparkVersion % "provided",
   "org.apache.spark"   %% "spark-sql"          % sparkVersion % "provided",
