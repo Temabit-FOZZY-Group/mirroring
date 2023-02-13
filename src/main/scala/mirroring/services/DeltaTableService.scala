@@ -21,13 +21,6 @@ import mirroring.services.SparkService.spark
 import wvlet.log.LogSupport
 
 object DeltaTableService extends LogSupport {
-
-  def runVacuum(pathToSave: String): Unit = {
-    if (DeltaTable.isDeltaTable(spark, pathToSave)) {
-      DeltaTable.forPath(spark, pathToSave).vacuum()
-    }
-  }
-
   def executeZOrdering(
       pathToSave: String,
       zorderbyCol: Array[String],

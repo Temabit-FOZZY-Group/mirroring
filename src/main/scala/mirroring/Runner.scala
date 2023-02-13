@@ -100,7 +100,6 @@ object Runner extends LogSupport {
         replaceWhere
       )
     }
-    DeltaTableService.runVacuum(config.pathToSave)
     if (config.hiveDb.nonEmpty) {
       SqlService.run(config)
     }
