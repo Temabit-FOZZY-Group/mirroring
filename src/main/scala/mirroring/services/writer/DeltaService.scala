@@ -17,6 +17,7 @@
 package mirroring.services.writer
 
 import mirroring.builders.FilterBuilder
+import mirroring.services.SparkService.spark
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import wvlet.log.LogSupport
 
@@ -52,5 +53,17 @@ class DeltaService(context: WriterContext) extends LogSupport {
         .partitionBy(context.partitionCols: _*)
     }
     writer
+  }
+
+  protected def checkSchema(columnsSource: Set[String]): Unit = {
+    logger.info("Checking if schema match for source and destination...")
+    val df_reader                = spark.read.format("delta")
+    val df                       = df_reader.load(context.path)
+    val columnsDest: Set[String] = df.columns.toSet
+    val columnsDiff: Set[String] = (columnsSource &~ columnsDest) | (columnsDest &~ columnsSource)
+    if (columnsDiff.nonEmpty) {
+      logger.error(s"Schema columns difference: ${columnsDiff.mkString(", ")}")
+      throw new SchemaNotMatchException()
+    }
   }
 }

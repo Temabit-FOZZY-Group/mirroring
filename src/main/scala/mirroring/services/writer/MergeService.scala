@@ -29,8 +29,7 @@ class MergeService(context: WriterContext) extends DeltaService(context) with Lo
     if (DeltaTable.isDeltaTable(spark, context.path)) {
       logger.info("Target table already exists. Merging data...")
 
-      val columns_map: Map[String, String] =
-        (data.columns zip data.columns.map(col => s"source.`$col`")).toMap
+      verifySchemaMatch(data)
 
       DeltaTable
         .forPath(spark, context.path)
@@ -44,9 +43,9 @@ class MergeService(context: WriterContext) extends DeltaService(context) with Lo
           )
         )
         .whenMatched
-        .updateExpr(columns_map)
+        .updateAll()
         .whenNotMatched
-        .insertExpr(columns_map)
+        .insertAll()
         .execute()
     } else {
       logger.info("Target table doesn't exist yet. Initializing table...")
@@ -56,5 +55,10 @@ class MergeService(context: WriterContext) extends DeltaService(context) with Lo
 
   override def dfWriter(data: DataFrame): DataFrameWriter[Row] = {
     super.dfWriter(data)
+  }
+
+  private def verifySchemaMatch(data: DataFrame): Unit = {
+    val columnsSource: Set[String] = data.columns.toSet
+    checkSchema(columnsSource)
   }
 }
