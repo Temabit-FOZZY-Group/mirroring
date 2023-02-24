@@ -1,8 +1,9 @@
 ---
 name: Bug Issue
 about: Use this template for reporting a bug
-labels: 'bug'
-title: '[BUG]'
+title: "[BUG]"
+labels: bug
+assignees: ''
 
 ---
 
