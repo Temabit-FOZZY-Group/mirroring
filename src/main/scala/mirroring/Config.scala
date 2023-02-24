@@ -68,7 +68,9 @@ case class Config(
     _CTMinValidVersionParams: String,
     CTCurrentVersionQuery: String,
     _CTCurrentVersionParams: String,
-    disablePlatformIngestedAt: Boolean
+    disablePlatformIngestedAt: Boolean,
+    logRetentionDuration: String,
+    deletedFileRetentionDuration: String
 ) extends LogSupport {
 
   FlowLogger.init(schema, tab, logLvl)
@@ -239,7 +241,9 @@ case class Config(
        |CTMinValidVersionParams - [${CTMinValidVersionParams.mkString(", ")}],
        |CTCurrentVersionQuery - $CTCurrentVersionQuery,
        |CTCurrentVersionParams - [${CTCurrentVersionParams.mkString(", ")}],
-       |disable_platform_ingested_at - $disablePlatformIngestedAt
+       |disable_platform_ingested_at - $disablePlatformIngestedAt,
+       |logRetentionDuration - $logRetentionDuration,
+       |deletedFileRetentionDuration - $deletedFileRetentionDuration
        |""".stripMargin
 
   }
