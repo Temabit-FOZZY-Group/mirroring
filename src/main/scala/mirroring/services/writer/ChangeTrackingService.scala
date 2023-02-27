@@ -76,7 +76,7 @@ class ChangeTrackingService(
     super.dfWriter(data)
   }
 
-  private def verifySchemaMatch(data: DataFrame): Unit = {
+  override def verifySchemaMatch(data: DataFrame): Unit = {
     // filter PK columns with sourceColPrefix
     val columns                    = data.columns.filterNot(excludeColumns.contains(_))
     val columnsSource: Set[String] = columns.toSet

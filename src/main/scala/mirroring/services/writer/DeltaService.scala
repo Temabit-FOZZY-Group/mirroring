@@ -16,6 +16,7 @@
 
 package mirroring.services.writer
 
+import io.delta.tables.DeltaTable
 import mirroring.builders.FilterBuilder
 import mirroring.services.SparkService.spark
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
@@ -24,6 +25,9 @@ import wvlet.log.LogSupport
 class DeltaService(context: WriterContext) extends LogSupport {
 
   def write(data: DataFrame): Unit = {
+    if (DeltaTable.isDeltaTable(spark, context.path)) {
+      verifySchemaMatch(data)
+    }
     logger.info(s"Saving data to ${context.path}")
     dfWriter(data).save(context.path)
     logger.info(s"Saved data to ${context.path}")
@@ -53,6 +57,11 @@ class DeltaService(context: WriterContext) extends LogSupport {
         .partitionBy(context.partitionCols: _*)
     }
     writer
+  }
+
+  protected def verifySchemaMatch(data: DataFrame): Unit = {
+    val columnsSource: Set[String] = data.columns.toSet
+    checkSchema(columnsSource)
   }
 
   protected def checkSchema(columnsSource: Set[String]): Unit = {

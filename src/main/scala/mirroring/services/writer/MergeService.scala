@@ -56,9 +56,4 @@ class MergeService(context: WriterContext) extends DeltaService(context) with Lo
   override def dfWriter(data: DataFrame): DataFrameWriter[Row] = {
     super.dfWriter(data)
   }
-
-  private def verifySchemaMatch(data: DataFrame): Unit = {
-    val columnsSource: Set[String] = data.columns.toSet
-    checkSchema(columnsSource)
-  }
 }
