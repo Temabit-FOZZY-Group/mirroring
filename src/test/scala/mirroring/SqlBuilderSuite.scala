@@ -52,13 +52,28 @@ class SqlBuilderSuite extends AnyFunSuite {
   test(
     "buildCreateTableSQL should generate CREATE EXTERNAL TABLE statement"
   ) {
-    val table    = "Test1Table"
-    val db       = "default"
-    val dataPath = "s3a://bucket/folder"
-    val result   = SqlBuilder.buildCreateTableSQL(db, table, dataPath)
-    assert(
-      result == "CREATE EXTERNAL TABLE `default`.`Test1Table` USING DELTA LOCATION 's3a://bucket/folder';"
+    val table                        = "Test1Table"
+    val db                           = "default"
+    val dataPath                     = "s3a://bucket/folder"
+    val logRetentionDuration         = "interval 1 day"
+    val deletedFileRetentionDuration = "interval 1 day"
+    val result = SqlBuilder.buildCreateTableSQL(
+      db,
+      table,
+      dataPath,
+      logRetentionDuration,
+      deletedFileRetentionDuration
     )
+    val expectedResult =
+      s"""CREATE EXTERNAL TABLE `default`.`Test1Table`
+       |USING DELTA
+       |LOCATION 's3a://bucket/folder'
+       |TBLPROPERTIES (
+       |   'delta.logRetentionDuration' = 'interval 1 day',
+       |   'delta.deletedFileRetentionDuration' = 'interval 1 day'
+       |   );
+    """.stripMargin
+    assert(result == expectedResult)
   }
 
   test("buildCreateDbSQL should return CREATE DATABASE statement ") {

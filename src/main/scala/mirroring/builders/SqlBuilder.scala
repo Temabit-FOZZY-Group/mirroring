@@ -49,8 +49,21 @@ object SqlBuilder extends LogSupport {
     s"DROP TABLE IF EXISTS `$db`.`$tab`;"
   }
 
-  def buildCreateTableSQL(db: String, tab: String, dataPath: String): String = {
-    s"CREATE EXTERNAL TABLE `$db`.`$tab` USING DELTA LOCATION '$dataPath';"
+  def buildCreateTableSQL(
+      db: String,
+      tab: String,
+      dataPath: String,
+      logRetentionDuration: String,
+      deletedFileRetentionDuration: String
+  ): String = {
+    s"""CREATE EXTERNAL TABLE `$db`.`$tab`
+    |USING DELTA
+    |LOCATION '$dataPath'
+    |TBLPROPERTIES (
+    |   'delta.logRetentionDuration' = '$logRetentionDuration',
+    |   'delta.deletedFileRetentionDuration' = '$deletedFileRetentionDuration'
+    |   );
+    """.stripMargin
   }
 
   def buildCreateDbSQL(db: String, dbLocation: String): String = {

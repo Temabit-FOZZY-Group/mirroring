@@ -33,7 +33,9 @@ object SqlService extends LogSupport {
     val createTableSQL = SqlBuilder.buildCreateTableSQL(
       config.hiveDb,
       config.targetTableName,
-      config.pathToSave
+      config.pathToSave,
+      config.logRetentionDuration,
+      config.deletedFileRetentionDuration
     )
 
     if (DeltaTable.isDeltaTable(spark, config.pathToSave)) {
