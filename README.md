@@ -12,6 +12,8 @@ tab==Tbl schema==dbo numpart==5 splitby==colId dtflt==modified path_to_save==/pa
 jdbcUrl==jdbc:jtds:sqlserver://server\;instance=inst\;domain=dmn\;useNTLMv2=true\;user=usr\;databasename=db\;password=****** calc_min_dt==2021-06-01 calc_max_dt==2021-09-01
 ```
 
+Library compares source and destination schemes. If column names don't match strictly `SchemaNotMatchException` is raised.
+
 # API documentation
 
 * **path_to_save**          `required` Your path to save the data.
