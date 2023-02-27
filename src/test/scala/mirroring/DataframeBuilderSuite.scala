@@ -38,7 +38,7 @@ class DataframeBuilderSuite extends AnyFunSuite {
       .toDF("id", "date", "hour", "content")
     val result = DataframeBuilder.renameColumns(df)
     assert(
-      result.schema.toDDL == "`id` INT NOT NULL,`date` STRING,`hour` STRING,`content` STRING"
+      result.schema.toDDL == "id INT NOT NULL,date STRING,hour STRING,content STRING"
     )
   }
 
@@ -59,7 +59,7 @@ class DataframeBuilderSuite extends AnyFunSuite {
       .toDF("id:", "d(at)e", "ho*ur.", "cont ent")
     val result = DataframeBuilder.renameColumns(df)
     assert(
-      result.schema.toDDL == "`id__` INT NOT NULL,`date` STRING,`ho*ur__` STRING,`cont__ent` STRING"
+      result.schema.toDDL == "id__ INT NOT NULL,date STRING,`ho*ur__` STRING,cont__ent STRING"
     )
   }
 
