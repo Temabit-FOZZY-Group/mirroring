@@ -17,10 +17,11 @@
 package mirroring.services
 
 import io.delta.tables.DeltaTable
+import mirroring.Config
 import mirroring.builders.SqlBuilder
 import mirroring.services.SparkService.spark
+import org.apache.spark.sql.delta.implicits.stringEncoder
 import wvlet.log.LogSupport
-import mirroring.Config
 
 object SqlService extends LogSupport {
 
@@ -33,7 +34,11 @@ object SqlService extends LogSupport {
     val createTableSQL = SqlBuilder.buildCreateTableSQL(
       config.hiveDb,
       config.targetTableName,
-      config.pathToSave,
+      config.pathToSave
+    )
+    val alterTableSQL = SqlBuilder.buildAlterTableSQL(
+      config.hiveDb,
+      config.targetTableName,
       config.logRetentionDuration,
       config.deletedFileRetentionDuration
     )
@@ -45,6 +50,28 @@ object SqlService extends LogSupport {
       spark.sql(dropTableSQL)
       logger.info(s"Running SQL: $createTableSQL")
       spark.sql(createTableSQL)
+
+      val logRetentionDuration = spark
+        .sql(
+          s"SHOW TBLPROPERTIES ${config.hiveDb}.${config.targetTableName} ('delta.logRetentionDuration');"
+        )
+        .select("value")
+        .as[String]
+        .first
+
+      val deletedFileRetentionDuration = spark
+        .sql(s"""SHOW TBLPROPERTIES ${config.hiveDb}.${config.targetTableName}
+          |('delta.deletedFileRetentionDuration');""".stripMargin)
+        .select("value")
+        .as[String]
+        .first
+
+      if (
+        !logRetentionDuration.equals(config.logRetentionDuration) || !deletedFileRetentionDuration
+          .equals(config.deletedFileRetentionDuration)
+      ) {
+        spark.sql(alterTableSQL)
+      }
     }
   }
 }

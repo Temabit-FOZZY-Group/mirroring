@@ -52,27 +52,42 @@ class SqlBuilderSuite extends AnyFunSuite {
   test(
     "buildCreateTableSQL should generate CREATE EXTERNAL TABLE statement"
   ) {
-    val table                        = "Test1Table"
-    val db                           = "default"
-    val dataPath                     = "s3a://bucket/folder"
-    val logRetentionDuration         = "interval 1 day"
-    val deletedFileRetentionDuration = "interval 1 day"
+    val table    = "Test1Table"
+    val db       = "default"
+    val dataPath = "s3a://bucket/folder"
     val result = SqlBuilder.buildCreateTableSQL(
       db,
       table,
-      dataPath,
-      logRetentionDuration,
-      deletedFileRetentionDuration
+      dataPath
     )
     val expectedResult =
       s"""CREATE EXTERNAL TABLE `default`.`Test1Table`
        |USING DELTA
-       |LOCATION 's3a://bucket/folder'
-       |TBLPROPERTIES (
-       |   'delta.logRetentionDuration' = 'interval 1 day',
-       |   'delta.deletedFileRetentionDuration' = 'interval 1 day'
-       |   );
+       |LOCATION 's3a://bucket/folder';
     """.stripMargin
+    assert(result == expectedResult)
+  }
+
+  test(
+    "buildAlterTableSQL should generate ALTER TABLE statement"
+  ) {
+    val table                        = "Test1Table"
+    val db                           = "default"
+    val logRetentionDuration         = "interval 1 day"
+    val deletedFileRetentionDuration = "interval 1 day"
+    val result = SqlBuilder.buildAlterTableSQL(
+      db,
+      table,
+      logRetentionDuration,
+      deletedFileRetentionDuration
+    )
+    val expectedResult =
+      s"""ALTER TABLE `default`.`Test1Table`
+         |SET TBLPROPERTIES (
+         |'delta.logRetentionDuration'= 'interval 1 day',
+         |'delta.deletedFileRetentionDuration'= 'interval 1 day'
+         |);""".stripMargin
+
     assert(result == expectedResult)
   }
 

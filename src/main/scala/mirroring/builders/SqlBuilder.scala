@@ -52,18 +52,25 @@ object SqlBuilder extends LogSupport {
   def buildCreateTableSQL(
       db: String,
       tab: String,
-      dataPath: String,
-      logRetentionDuration: String,
-      deletedFileRetentionDuration: String
+      dataPath: String
   ): String = {
     s"""CREATE EXTERNAL TABLE `$db`.`$tab`
     |USING DELTA
-    |LOCATION '$dataPath'
-    |TBLPROPERTIES (
-    |   'delta.logRetentionDuration' = '$logRetentionDuration',
-    |   'delta.deletedFileRetentionDuration' = '$deletedFileRetentionDuration'
-    |   );
+    |LOCATION '$dataPath';
     """.stripMargin
+  }
+
+  def buildAlterTableSQL(
+      db: String,
+      tab: String,
+      logRetentionDuration: String,
+      deletedFileRetentionDuration: String
+  ): String = {
+    s"""ALTER TABLE `$db`.`$tab`
+    |SET TBLPROPERTIES (
+    |'delta.logRetentionDuration'= '$logRetentionDuration',
+    |'delta.deletedFileRetentionDuration'= '$deletedFileRetentionDuration'
+    |);""".stripMargin
   }
 
   def buildCreateDbSQL(db: String, dbLocation: String): String = {
