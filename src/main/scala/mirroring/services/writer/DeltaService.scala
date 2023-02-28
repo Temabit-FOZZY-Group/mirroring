@@ -16,13 +16,18 @@
 
 package mirroring.services.writer
 
+import io.delta.tables.DeltaTable
 import mirroring.builders.FilterBuilder
+import mirroring.services.SparkService.spark
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import wvlet.log.LogSupport
 
 class DeltaService(context: WriterContext) extends LogSupport {
 
   def write(data: DataFrame): Unit = {
+    if (DeltaTable.isDeltaTable(spark, context.path)) {
+      verifySchemaMatch(data)
+    }
     logger.info(s"Saving data to ${context.path}")
     dfWriter(data).save(context.path)
     logger.info(s"Saved data to ${context.path}")
@@ -32,7 +37,6 @@ class DeltaService(context: WriterContext) extends LogSupport {
     var writer = data.write
       .mode(context.mode)
       .format("delta")
-      .option("mergeSchema", "true")
       .option("userMetadata", context.ctCurrentVersion)
 
     val replaceWhere = FilterBuilder.buildReplaceWherePredicate(
@@ -53,5 +57,22 @@ class DeltaService(context: WriterContext) extends LogSupport {
         .partitionBy(context.partitionCols: _*)
     }
     writer
+  }
+
+  protected def verifySchemaMatch(data: DataFrame): Unit = {
+    val columnsSource: Set[String] = data.columns.toSet
+    checkSchema(columnsSource)
+  }
+
+  protected def checkSchema(columnsSource: Set[String]): Unit = {
+    logger.info("Checking if schema match for source and destination...")
+    val df_reader                = spark.read.format("delta")
+    val df                       = df_reader.load(context.path)
+    val columnsDest: Set[String] = df.columns.toSet
+    val columnsDiff: Set[String] = (columnsSource &~ columnsDest) | (columnsDest &~ columnsSource)
+    if (columnsDiff.nonEmpty) {
+      logger.error(s"Schema columns difference: ${columnsDiff.mkString(", ")}")
+      throw new SchemaNotMatchException()
+    }
   }
 }

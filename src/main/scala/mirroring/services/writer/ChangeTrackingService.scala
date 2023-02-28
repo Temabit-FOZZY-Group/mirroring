@@ -33,11 +33,14 @@ class ChangeTrackingService(
   private val updateCondition = "true"
   private val insertCondition =
     s"${Config.SourceAlias}.SYS_CHANGE_OPERATION in ('I', 'U')"
+  private val sourceColPrefix = "SYS_CHANGE_PK_"
+  private val excludeColumns =
+    context.primaryKey.map(col => s"$sourceColPrefix$col") :+ "SYS_CHANGE_OPERATION"
 
   override def write(data: DataFrame): Unit = {
     if (DeltaTable.isDeltaTable(spark, context.path)) {
-
       logger.info("Target table already exists. Merging data...")
+      verifySchemaMatch(data)
 
       spark.conf.set(
         "spark.databricks.delta.commitInfo.userMetadata",
@@ -46,7 +49,7 @@ class ChangeTrackingService(
 
       val condition = FilterBuilder.buildMergeCondition(
         context.primaryKey,
-        sourceColPrefix = "SYS_CHANGE_PK_",
+        sourceColPrefix = sourceColPrefix,
         ds = data,
         partitionCol = context.lastPartitionCol
       )
@@ -71,5 +74,12 @@ class ChangeTrackingService(
 
   override def dfWriter(data: DataFrame): DataFrameWriter[Row] = {
     super.dfWriter(data)
+  }
+
+  override def verifySchemaMatch(data: DataFrame): Unit = {
+    // filter PK columns with sourceColPrefix
+    val columns                    = data.columns.filterNot(excludeColumns.contains(_))
+    val columnsSource: Set[String] = columns.toSet
+    checkSchema(columnsSource)
   }
 }

@@ -29,6 +29,8 @@ class MergeService(context: WriterContext) extends DeltaService(context) with Lo
     if (DeltaTable.isDeltaTable(spark, context.path)) {
       logger.info("Target table already exists. Merging data...")
 
+      verifySchemaMatch(data)
+
       DeltaTable
         .forPath(spark, context.path)
         .as(Config.TargetAlias)
