@@ -29,25 +29,15 @@ object SqlService extends LogSupport {
 
     val createDbSQL =
       SqlBuilder.buildCreateDbSQL(config.hiveDb, config.hiveDbLocation)
-    val dropTableSQL =
-      SqlBuilder.buildDropTableSQL(config.hiveDb, config.targetTableName)
     val createTableSQL = SqlBuilder.buildCreateTableSQL(
       config.hiveDb,
       config.targetTableName,
       config.pathToSave
     )
-    val alterTableSQL = SqlBuilder.buildAlterTableSQL(
-      config.hiveDb,
-      config.targetTableName,
-      config.logRetentionDuration,
-      config.deletedFileRetentionDuration
-    )
 
     if (DeltaTable.isDeltaTable(spark, config.pathToSave)) {
       logger.info(s"Running SQL: $createDbSQL")
       spark.sql(createDbSQL)
-      logger.info(s"Running SQL: $dropTableSQL")
-      spark.sql(dropTableSQL)
       logger.info(s"Running SQL: $createTableSQL")
       spark.sql(createTableSQL)
 
@@ -70,6 +60,12 @@ object SqlService extends LogSupport {
         !logRetentionDuration.equals(config.logRetentionDuration) || !deletedFileRetentionDuration
           .equals(config.deletedFileRetentionDuration)
       ) {
+        val alterTableSQL = SqlBuilder.buildAlterTableSQL(
+          config.hiveDb,
+          config.targetTableName,
+          config.logRetentionDuration,
+          config.deletedFileRetentionDuration
+        )
         spark.sql(alterTableSQL)
       }
     }

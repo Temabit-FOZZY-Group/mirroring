@@ -42,13 +42,6 @@ class SqlBuilderSuite extends AnyFunSuite {
     )
   }
 
-  test("buildDropTableSQL should create DROP TABLE statement") {
-    val table  = "Test1Table"
-    val db     = "default"
-    val result = SqlBuilder.buildDropTableSQL(db, table)
-    assert(result == "DROP TABLE IF EXISTS `default`.`Test1Table`;")
-  }
-
   test(
     "buildCreateTableSQL should generate CREATE EXTERNAL TABLE statement"
   ) {
@@ -61,7 +54,7 @@ class SqlBuilderSuite extends AnyFunSuite {
       dataPath
     )
     val expectedResult =
-      s"""CREATE EXTERNAL TABLE `default`.`Test1Table`
+      s"""CREATE EXTERNAL TABLE IF NOT EXISTS `default`.`Test1Table`
        |USING DELTA
        |LOCATION 's3a://bucket/folder';
     """.stripMargin

@@ -45,16 +45,12 @@ object SqlBuilder extends LogSupport {
     s" AND $dtFlt >= '${startDate}T00:00:00.000' AND $dtFlt < '${endDate}T00:00:00.000'"
   }
 
-  def buildDropTableSQL(db: String, tab: String): String = {
-    s"DROP TABLE IF EXISTS `$db`.`$tab`;"
-  }
-
   def buildCreateTableSQL(
       db: String,
       tab: String,
       dataPath: String
   ): String = {
-    s"""CREATE EXTERNAL TABLE `$db`.`$tab`
+    s"""CREATE EXTERNAL TABLE IF NOT EXISTS `$db`.`$tab`
     |USING DELTA
     |LOCATION '$dataPath';
     """.stripMargin
