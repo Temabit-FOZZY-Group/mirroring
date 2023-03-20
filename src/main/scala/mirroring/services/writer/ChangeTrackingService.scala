@@ -17,9 +17,11 @@
 package mirroring.services.writer
 
 import io.delta.tables.DeltaTable
+import mirroring.UserMetadata
 import mirroring.builders.FilterBuilder
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import mirroring.services.SparkService.spark
+import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogSupport
 import mirroring.Config
 
@@ -36,6 +38,7 @@ class ChangeTrackingService(
   private val sourceColPrefix = "SYS_CHANGE_PK_"
   private val excludeColumns =
     context.primaryKey.map(col => s"$sourceColPrefix$col") :+ "SYS_CHANGE_OPERATION"
+  private val userMetadataJSON = generateUserMetadataJSON(context.ctCurrentVersion)
 
   override def write(data: DataFrame): Unit = {
     if (DeltaTable.isDeltaTable(spark, context.path)) {
@@ -44,7 +47,7 @@ class ChangeTrackingService(
 
       spark.conf.set(
         "spark.databricks.delta.commitInfo.userMetadata",
-        context.ctCurrentVersion
+        userMetadataJSON
       )
 
       val condition = FilterBuilder.buildMergeCondition(
@@ -75,7 +78,7 @@ class ChangeTrackingService(
   }
 
   override def dfWriter(data: DataFrame): DataFrameWriter[Row] = {
-    super.dfWriter(data)
+    super.dfWriter(data).option("userMetadata", userMetadataJSON)
   }
 
   override def verifySchemaMatch(data: DataFrame): Unit = {
@@ -83,5 +86,12 @@ class ChangeTrackingService(
     val columns                    = data.columns.filterNot(excludeColumns.contains(_))
     val columnsSource: Set[String] = columns.toSet
     checkSchema(columnsSource)
+  }
+
+  private def generateUserMetadataJSON(ctCurrentVersion: BigInt): String = {
+    val userMetadata             = UserMetadata(ctCurrentVersion)
+    val codec                    = MessageCodec.of[UserMetadata]
+    val userMetadataJSON: String = codec.toJson(userMetadata)
+    userMetadataJSON
   }
 }

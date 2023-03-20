@@ -17,11 +17,12 @@
 package mirroring.handlers
 
 import io.delta.tables.DeltaTable
-import mirroring.Config
+import mirroring.{Config, UserMetadata}
 import mirroring.builders._
 import mirroring.services.SparkService.spark
 import mirroring.services.databases.{JdbcContext, JdbcCTService}
 import mirroring.services.writer.WriterContext
+import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogSupport
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
@@ -71,15 +72,17 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
   }
 
   private lazy val ctDeltaVersion: BigInt = {
-    val userMeta = DeltaTable
+    val userMetaJSON = DeltaTable
       .forPath(spark, config.pathToSave)
       .history(1)
       .select("userMetadata")
       .collect()(0)
       .getString(0)
 
-    BigInt(userMeta)
-
+    val codec                              = MessageCodec.of[UserMetadata]
+    val userMetadata: Option[UserMetadata] = codec.unpackJson(userMetaJSON)
+    val ChangeTrackingVersion: BigInt      = userMetadata.get.ChangeTrackingVersion
+    ChangeTrackingVersion
   }
 
   private lazy val primaryKeyOnClause: String = {
@@ -131,7 +134,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
       currentWriterContext: WriterContext,
       currentJdbcContext: JdbcContext
   ): Unit = {
-    currentWriterContext.ctCurrentVersion = ctCurrentVersion
+    currentWriterContext._ctCurrentVersion = Some(ctCurrentVersion)
     currentJdbcContext._ctCurrentVersion = Some(ctCurrentVersion)
     currentJdbcContext._changeTrackingLastVersion = () => Some(changeTrackingLastVersion())
     if (isDeltaTableExists) {
