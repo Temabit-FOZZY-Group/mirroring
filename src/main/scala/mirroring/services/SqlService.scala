@@ -25,7 +25,7 @@ import wvlet.log.LogSupport
 
 object SqlService extends LogSupport {
 
-  def run(config: Config): Unit = {
+  def run(config: Config, userMetadataJSON: String): Unit = {
 
     val createDbSQL =
       SqlBuilder.buildCreateDbSQL(config.hiveDb, config.hiveDbLocation)
@@ -66,6 +66,12 @@ object SqlService extends LogSupport {
           config.logRetentionDuration,
           config.deletedFileRetentionDuration
         )
+        if (config.isChangeTrackingEnabled) {
+          spark.conf.set(
+            "spark.databricks.delta.commitInfo.userMetadata",
+            userMetadataJSON
+          )
+        }
         spark.sql(alterTableSQL)
       }
     }

@@ -38,7 +38,7 @@ class ChangeTrackingService(
   private val sourceColPrefix = "SYS_CHANGE_PK_"
   private val excludeColumns =
     context.primaryKey.map(col => s"$sourceColPrefix$col") :+ "SYS_CHANGE_OPERATION"
-  private val userMetadataJSON = generateUserMetadataJSON(context.ctCurrentVersion)
+  val userMetadataJSON: String = generateUserMetadataJSON(context.ctCurrentVersion)
 
   override def write(data: DataFrame): Unit = {
     if (DeltaTable.isDeltaTable(spark, context.path)) {
@@ -92,6 +92,10 @@ class ChangeTrackingService(
     val userMetadata             = UserMetadata(ctCurrentVersion)
     val codec                    = MessageCodec.of[UserMetadata]
     val userMetadataJSON: String = codec.toJson(userMetadata)
+    userMetadataJSON
+  }
+
+  override def getUserMetadataJSON: String = {
     userMetadataJSON
   }
 }

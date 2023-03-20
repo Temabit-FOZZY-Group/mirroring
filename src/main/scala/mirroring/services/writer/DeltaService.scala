@@ -74,4 +74,8 @@ class DeltaService(context: WriterContext) extends LogSupport {
       throw new SchemaNotMatchException()
     }
   }
+
+  def getUserMetadataJSON: String = {
+    ""
+  }
 }
