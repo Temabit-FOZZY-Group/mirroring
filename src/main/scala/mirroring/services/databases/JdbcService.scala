@@ -55,7 +55,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
     }
   }
   def loadData(_query: String): DataFrame = {
-    logger.info(s"Reading data with query: ${_query}")
+    logger.info(s"Reading data with query: ${_query.linesIterator.mkString(" ").trim}")
     dfReader.option("dbtable", _query).load().cache()
   }
 

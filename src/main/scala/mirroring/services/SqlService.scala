@@ -38,7 +38,7 @@ object SqlService extends LogSupport {
     if (DeltaTable.isDeltaTable(spark, config.pathToSave)) {
       logger.info(s"Running SQL: $createDbSQL")
       spark.sql(createDbSQL)
-      logger.info(s"Running SQL: $createTableSQL")
+      logger.info(s"Running SQL: ${createTableSQL.linesIterator.mkString(" ").trim}")
       spark.sql(createTableSQL)
 
       val logRetentionDuration = spark
