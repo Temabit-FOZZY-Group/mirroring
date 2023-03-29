@@ -42,7 +42,7 @@ object FilterBuilder extends LogSupport {
   ): String = {
     val conditions: mutable.ArrayBuilder[String] = Array.newBuilder[String]
     lazy val partitionFilter =
-      FilterBuilder.buildReplaceWherePredicate(ds, partitionCol, "")
+      FilterBuilder.buildReplaceWherePredicate(ds, s"${sourceColPrefix}partitionCol", "")
     if (partitionCol.nonEmpty && partitionFilter.nonEmpty) {
       conditions += partitionFilter.replace(
         partitionCol,
