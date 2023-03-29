@@ -17,9 +17,10 @@
 package mirroring.services.writer
 
 import io.delta.tables.DeltaTable
-import mirroring.builders.FilterBuilder
+import mirroring.builders.{FilterBuilder, SqlBuilder}
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import mirroring.services.SparkService.spark
+import org.apache.spark.sql.functions.lit
 import wvlet.log.LogSupport
 import mirroring.Config
 
@@ -70,6 +71,9 @@ class ChangeTrackingService(
       logger.info("Target table doesn't exist yet. Initializing table...")
       super.write(data)
     }
+    if (context.ct_debug) {
+      writeCtDebug(data)
+    }
   }
 
   override def dfWriter(data: DataFrame): DataFrameWriter[Row] = {
@@ -81,5 +85,32 @@ class ChangeTrackingService(
     val columns                    = data.columns.filterNot(excludeColumns.contains(_))
     val columnsSource: Set[String] = columns.toSet
     checkSchema(columnsSource)
+  }
+
+  private def writeCtDebug(data: DataFrame): Unit = {
+    val pathCtDebug: String = s"${context.path}_ct_debug"
+    logger.info(s"Writing CT data as is into $pathCtDebug...")
+    val contextCtDebug: WriterContext = WriterContext(
+      _mode = "append",
+      _pathToSave = pathCtDebug,
+      _partitionCols = context.partitionCols,
+      _lastPartitionCol = context.lastPartitionCol,
+      _mergeKeys = context.mergeKeys,
+      _primaryKey = context.primaryKey,
+      _whereClause = context.whereClause,
+      _hiveDb = "",
+      _targetTableName = "",
+      _ct_debug = false
+    )
+    val ctDebugData                        = data.withColumn("ctCurrentVersion", lit(context.ctCurrentVersion))
+    val ctDebugWriterService: DeltaService = new DeltaService(contextCtDebug)
+    ctDebugWriterService.write(ctDebugData)
+    val createTableSQL = SqlBuilder.buildCreateTableSQL(
+      context.hiveDb,
+      s"${context.targetTableName}_ct_debug",
+      pathCtDebug
+    )
+    logger.info(s"Running SQL: $createTableSQL")
+    spark.sql(createTableSQL)
   }
 }

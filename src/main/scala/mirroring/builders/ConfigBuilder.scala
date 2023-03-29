@@ -60,7 +60,8 @@ object ConfigBuilder extends LogSupport {
     "ct_current_version_params"       -> "",
     "disable_platform_ingested_at"    -> "false",
     "log_retention_duration"          -> "interval 7 days",
-    "deleted_file_retention_duration" -> "interval 7 days"
+    "deleted_file_retention_duration" -> "interval 7 days",
+    "ct_debug"                        -> "false"
   )
 
   def parse(
@@ -125,7 +126,8 @@ object ConfigBuilder extends LogSupport {
       _CTCurrentVersionParams = arguments("ct_current_version_params"),
       disablePlatformIngestedAt = arguments("disable_platform_ingested_at").toBoolean,
       logRetentionDuration = arguments("log_retention_duration"),
-      deletedFileRetentionDuration = arguments("deleted_file_retention_duration")
+      deletedFileRetentionDuration = arguments("deleted_file_retention_duration"),
+      ct_debug = arguments("ct_debug").toBoolean
     )
   }
 

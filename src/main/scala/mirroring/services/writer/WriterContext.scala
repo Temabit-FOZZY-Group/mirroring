@@ -23,7 +23,10 @@ case class WriterContext(
     private val _lastPartitionCol: String,
     private val _mergeKeys: Array[String],
     private val _primaryKey: Array[String],
-    private val _whereClause: String
+    private val _whereClause: String,
+    private val _hiveDb: String,
+    private val _targetTableName: String,
+    private val _ct_debug: Boolean
 ) {
 
   private var _ctCurrentVersion: String = ""
@@ -39,5 +42,8 @@ case class WriterContext(
   val mergeKeys: Array[String]     = _mergeKeys
   val primaryKey: Array[String]    = _primaryKey
   val whereClause: String          = _whereClause
+  val hiveDb: String               = _hiveDb
+  val targetTableName: String      = _targetTableName
+  val ct_debug: Boolean            = _ct_debug
 
 }

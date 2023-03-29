@@ -70,7 +70,8 @@ case class Config(
     _CTCurrentVersionParams: String,
     disablePlatformIngestedAt: Boolean,
     logRetentionDuration: String,
-    deletedFileRetentionDuration: String
+    deletedFileRetentionDuration: String,
+    ct_debug: Boolean
 ) extends LogSupport {
 
   FlowLogger.init(schema, tab, logLvl)
@@ -200,7 +201,10 @@ case class Config(
       lastPartitionCol,
       mergeKeys,
       primary_key,
-      whereClause.toString
+      whereClause.toString,
+      hiveDb,
+      targetTableName,
+      ct_debug
     )
   }
 
@@ -243,7 +247,8 @@ case class Config(
        |CTCurrentVersionParams - [${CTCurrentVersionParams.mkString(", ")}],
        |disable_platform_ingested_at - $disablePlatformIngestedAt,
        |logRetentionDuration - $logRetentionDuration,
-       |deletedFileRetentionDuration - $deletedFileRetentionDuration
+       |deletedFileRetentionDuration - $deletedFileRetentionDuration,
+       |ct_debug - $ct_debug
        |""".stripMargin
 
   }
