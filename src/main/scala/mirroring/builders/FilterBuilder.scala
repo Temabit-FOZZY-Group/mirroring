@@ -38,14 +38,15 @@ object FilterBuilder extends LogSupport {
       ds: DataFrame,
       partitionCol: String = "",
       sourceColPrefix: String = "",
-      targetColPrefix: String = ""
+      targetColPrefix: String = "",
+      partitionColPrefix: String = ""
   ): String = {
     val conditions: mutable.ArrayBuilder[String] = Array.newBuilder[String]
     lazy val partitionFilter =
       FilterBuilder.buildReplaceWherePredicate(
         ds = ds,
         partitionCol = partitionCol,
-        sourceColPrefix = sourceColPrefix,
+        partitionColPrefix = partitionColPrefix,
         partitionColTargetSchema = Config.TargetAlias
       )
     if (partitionCol.nonEmpty && partitionFilter.nonEmpty) {
@@ -72,7 +73,7 @@ object FilterBuilder extends LogSupport {
   def buildReplaceWherePredicate(
       ds: DataFrame,
       partitionCol: String,
-      sourceColPrefix: String = "",
+      partitionColPrefix: String = "",
       partitionColTargetSchema: String = "",
       whereClause: String = ""
   ): String = {
@@ -83,7 +84,7 @@ object FilterBuilder extends LogSupport {
       }
 
       val values = ds
-        .select(s"$sourceColPrefix$partitionCol")
+        .select(s"$partitionColPrefix$partitionCol")
         .distinct
         .as[String](Encoders.STRING)
         .filter(x => !x.toLowerCase.contains("null"))
