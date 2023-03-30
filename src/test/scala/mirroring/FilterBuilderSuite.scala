@@ -58,7 +58,7 @@ class FilterBuilderSuite extends AnyFunSuite {
         Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
       )
       .toDF("id", "date", "hour", "content")
-    val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
+    val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol)
     assert(result == "id in (1, 2)")
   }
 
@@ -75,7 +75,7 @@ class FilterBuilderSuite extends AnyFunSuite {
         Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
       )
       .toDF("id", "date", "hour", "content")
-    val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
+    val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol)
     assert(result == "")
   }
 
@@ -84,14 +84,15 @@ class FilterBuilderSuite extends AnyFunSuite {
   ) {
     val partitionCol = ""
     val df           = null
-    val result       = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, "")
+    val result       = FilterBuilder.buildReplaceWherePredicate(df, partitionCol)
     assert(result == "")
   }
 
   test(
     "buildReplaceWherePredicate should collect values from dataset to replace them on target and append where clause from user"
   ) {
-    val partitionCol = "id"
+    val partitionCol             = "id"
+    val partitionColTargetSchema = "target"
     val whereClause =
       "(filid = 3171 and cast(operationdate as date) = '2022-12-02')"
     val spark = SparkSession
@@ -105,9 +106,14 @@ class FilterBuilderSuite extends AnyFunSuite {
         Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
       )
       .toDF("id", "date", "hour", "content")
-    val result = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, whereClause)
+    val result = FilterBuilder.buildReplaceWherePredicate(
+      ds = df,
+      partitionCol = partitionCol,
+      partitionColTargetSchema = partitionColTargetSchema,
+      whereClause = whereClause
+    )
     assert(
-      result == "(filid = 3171 and cast(operationdate as date) = '2022-12-02') AND id in (1, 2)"
+      result == "(filid = 3171 and cast(operationdate as date) = '2022-12-02') AND target.id in (1, 2)"
     )
   }
 
@@ -117,7 +123,11 @@ class FilterBuilderSuite extends AnyFunSuite {
     val partitionCol = ""
     val df           = null
     val whereClause  = "(filid = 3171 and cast(operationdate as date) = '2022-12-02')"
-    val result       = FilterBuilder.buildReplaceWherePredicate(df, partitionCol, whereClause)
+    val result = FilterBuilder.buildReplaceWherePredicate(
+      ds = df,
+      partitionCol = partitionCol,
+      whereClause = whereClause
+    )
     assert(result == "(filid = 3171 and cast(operationdate as date) = '2022-12-02')")
   }
 
@@ -131,7 +141,7 @@ class FilterBuilderSuite extends AnyFunSuite {
     )
     val config = ConfigBuilder.build(ConfigBuilder.parse(args))
     val result = FilterBuilder.buildMergeCondition(
-      config.primary_key,
+      primaryKey = config.primary_key,
       sourceColPrefix = "SYS_CHANGE_PK_",
       ds = null
     )
@@ -154,20 +164,24 @@ class FilterBuilderSuite extends AnyFunSuite {
       "jdbcUrl==dummy;user=hhh;password=ll",
       "tab==dummy",
       "change_tracking==true",
-      "primary_key==id,[FilId], id2"
+      "primary_key==id,[FilId], id2",
+      "write_partitioned==true",
+      "partition_col==FilId"
     )
     val config = ConfigBuilder.build(ConfigBuilder.parse(args))
     val ds = spark
       .range(3)
       .withColumn("FilId", col("id").multiply(10))
       .withColumn("id2", lit(0))
+      .withColumn("SYS_CHANGE_PK_FilId", lit(1))
     val result = FilterBuilder.buildMergeCondition(
-      config.primary_key,
+      primaryKey = config.primary_key,
       partitionCol = "FilId",
-      ds = ds
+      ds = ds,
+      partitionColPrefix = "SYS_CHANGE_PK_"
     )
     val expectedResult =
-      "target.FilId in (0, 10, 20) and source.id = target.id and source.FilId = target.FilId " +
+      "target.FilId in (1) and source.id = target.id and source.FilId = target.FilId " +
         "and source.id2 = target.id2"
     assert(result.equals(expectedResult))
   }
@@ -191,7 +205,7 @@ class FilterBuilderSuite extends AnyFunSuite {
       .withColumn("FilId", col("id").multiply(10))
       .withColumn("id2", lit(0))
     val result = FilterBuilder.buildMergeCondition(
-      config.primary_key,
+      primaryKey = config.primary_key,
       partitionCol = "FilId",
       ds = ds,
       sourceColPrefix = "pref_",
@@ -212,7 +226,7 @@ class FilterBuilderSuite extends AnyFunSuite {
       "primary_key==id,[FilId], id2"
     )
     val config = ConfigBuilder.build(ConfigBuilder.parse(args))
-    val result = FilterBuilder.buildMergeCondition(config.primary_key, ds = null)
+    val result = FilterBuilder.buildMergeCondition(primaryKey = config.primary_key, ds = null)
     assert(
       result.equals(
         "source.id = target.id and source.FilId = target.FilId " +
