@@ -90,9 +90,8 @@ object Runner extends LogSupport {
     if (config.zorderby_col.nonEmpty) {
       val replaceWhere =
         FilterBuilder.buildReplaceWherePredicate(
-          ds,
-          config.lastPartitionCol,
-          ""
+          ds = ds,
+          partitionCol = config.lastPartitionCol
         )
       DeltaTableService.executeZOrdering(
         config.pathToSave,

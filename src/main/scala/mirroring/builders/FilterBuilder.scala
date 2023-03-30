@@ -42,12 +42,14 @@ object FilterBuilder extends LogSupport {
   ): String = {
     val conditions: mutable.ArrayBuilder[String] = Array.newBuilder[String]
     lazy val partitionFilter =
-      FilterBuilder.buildReplaceWherePredicate(ds, s"${sourceColPrefix}partitionCol", "")
-    if (partitionCol.nonEmpty && partitionFilter.nonEmpty) {
-      conditions += partitionFilter.replace(
-        partitionCol,
-        s"${Config.TargetAlias}.$partitionCol"
+      FilterBuilder.buildReplaceWherePredicate(
+        ds = ds,
+        partitionCol = partitionCol,
+        sourceColPrefix = sourceColPrefix,
+        partitionColTargetSchema = Config.TargetAlias
       )
+    if (partitionCol.nonEmpty && partitionFilter.nonEmpty) {
+      conditions += partitionFilter
     }
     conditions += primaryKey
       .map(colName =>
@@ -70,7 +72,9 @@ object FilterBuilder extends LogSupport {
   def buildReplaceWherePredicate(
       ds: DataFrame,
       partitionCol: String,
-      whereClause: String
+      sourceColPrefix: String = "",
+      partitionColTargetSchema: String = "",
+      whereClause: String = ""
   ): String = {
     if (ds != null && partitionCol.nonEmpty) {
       val replaceWhere = new mutable.StringBuilder(s"$whereClause")
@@ -79,14 +83,14 @@ object FilterBuilder extends LogSupport {
       }
 
       val values = ds
-        .select(partitionCol)
+        .select(s"$sourceColPrefix$partitionCol")
         .distinct
         .as[String](Encoders.STRING)
         .filter(x => !x.toLowerCase.contains("null"))
         .cache()
 
       if (!values.isEmpty) {
-        replaceWhere.append(s"$partitionCol in (")
+        replaceWhere.append(s"$partitionColTargetSchema.$partitionCol in (")
         replaceWhere.append(
           values
             .map(partition =>
