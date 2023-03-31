@@ -91,7 +91,13 @@ object FilterBuilder extends LogSupport {
         .cache()
 
       if (!values.isEmpty) {
-        replaceWhere.append(s"$partitionColTargetSchema.$partitionCol in (")
+        val replaceWhereAppend: String =
+          if (partitionColTargetSchema.nonEmpty) {
+            s"$partitionColTargetSchema.$partitionCol in ("
+          } else {
+            s"$partitionCol in ("
+          }
+        replaceWhere.append(replaceWhereAppend)
         replaceWhere.append(
           values
             .map(partition =>
