@@ -26,12 +26,9 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
 
   override def loadData(@annotation.unused _query: String = ""): DataFrame = {
     val connection = DriverManager.getConnection(url)
-    val params: Array[String] = JdbcBuilder.buildCTChangesQueryParams(
+    val params: Array[String] = JdbcBuilder.buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
-      jdbcContext.schema,
-      jdbcContext.table,
-      jdbcContext.ctLastVersion.toString,
-      jdbcContext.ctCurrentVersion.toString
+      jdbcContext
     )
     try {
       val jdbcDF: DataFrame = JdbcBuilder
@@ -67,10 +64,14 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
   ): BigInt = {
     val connection = DriverManager.getConnection(url)
     try {
+      val params: Array[String] = JdbcBuilder.buildCTQueryParams(
+        parameters,
+        jdbcContext
+      )
       val rs = JdbcBuilder.buildJDBCResultSet(
         connection,
         query,
-        parameters
+        params
       )
       rs.next()
       rs.getLong(1)
