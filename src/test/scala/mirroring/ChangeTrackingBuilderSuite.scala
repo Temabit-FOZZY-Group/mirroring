@@ -15,7 +15,8 @@
  */
 package mirroring
 
-import mirroring.builders.ChangeTrackingBuilder
+import mirroring.builders.{ChangeTrackingBuilder, JdbcBuilder}
+import mirroring.services.databases.JdbcContext
 import org.scalatest.funsuite.AnyFunSuite
 
 class ChangeTrackingBuilderSuite extends AnyFunSuite {
@@ -81,5 +82,25 @@ class ChangeTrackingBuilderSuite extends AnyFunSuite {
         "CT.id as [SYS_CHANGE_PK_id], CT.FilId as [SYS_CHANGE_PK_FilId], CT.id2 as [SYS_CHANGE_PK_id2]"
       )
     )
+  }
+
+  test(
+    "buildCTQueryParams with default values"
+  ) {
+    val CTChangesQueryParams: Array[String] =
+      Array("defaultSQLTable", "X", "queryCTCurrentVersion", "queryCTLastVersion")
+    val jdbcContext: JdbcContext = JdbcContext(
+      jdbcUrl = "_jdbcUrl",
+      inTable = "tab",
+      inSchema = "schema",
+      numPart = "numPart",
+      splitby = "splitBy",
+      _CTChangesQuery = "CTChangesQuery",
+      _ctCurrentVersion = Some(BigInt(1)),
+      _CTChangesQueryParams = CTChangesQueryParams,
+      _changeTrackingLastVersion = () => Some(BigInt(2))
+    )
+    val result = JdbcBuilder.buildCTQueryParams(CTChangesQueryParams, jdbcContext)
+    assert(result sameElements Array("[schema].[tab]", "X", "1", "2"))
   }
 }
