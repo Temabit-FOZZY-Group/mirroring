@@ -40,9 +40,9 @@ class DeltaService(context: WriterContext) extends LogSupport {
       .option("userMetadata", context.ctCurrentVersion)
 
     val replaceWhere = FilterBuilder.buildReplaceWherePredicate(
-      data,
-      context.lastPartitionCol,
-      context.whereClause
+      ds = data,
+      partitionCol = context.lastPartitionCol,
+      whereClause = context.whereClause
     )
     if (replaceWhere.nonEmpty && context.mode == "overwrite") {
       logger.info(

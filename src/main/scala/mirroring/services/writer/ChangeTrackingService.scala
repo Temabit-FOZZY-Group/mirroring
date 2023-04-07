@@ -51,7 +51,9 @@ class ChangeTrackingService(
         context.primaryKey,
         sourceColPrefix = sourceColPrefix,
         ds = data,
-        partitionCol = context.lastPartitionCol
+        partitionCol = context.lastPartitionCol,
+        partitionColPrefix =
+          if (context.primaryKey.contains(context.lastPartitionCol)) sourceColPrefix else ""
       )
 
       DeltaTable

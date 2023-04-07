@@ -38,16 +38,19 @@ object FilterBuilder extends LogSupport {
       ds: DataFrame,
       partitionCol: String = "",
       sourceColPrefix: String = "",
-      targetColPrefix: String = ""
+      targetColPrefix: String = "",
+      partitionColPrefix: String = ""
   ): String = {
     val conditions: mutable.ArrayBuilder[String] = Array.newBuilder[String]
     lazy val partitionFilter =
-      FilterBuilder.buildReplaceWherePredicate(ds, partitionCol, "")
-    if (partitionCol.nonEmpty && partitionFilter.nonEmpty) {
-      conditions += partitionFilter.replace(
-        partitionCol,
-        s"${Config.TargetAlias}.$partitionCol"
+      FilterBuilder.buildReplaceWherePredicate(
+        ds = ds,
+        partitionCol = partitionCol,
+        partitionColPrefix = partitionColPrefix,
+        partitionColTargetSchema = Config.TargetAlias
       )
+    if (partitionCol.nonEmpty && partitionFilter.nonEmpty) {
+      conditions += partitionFilter
     }
     conditions += primaryKey
       .map(colName =>
@@ -70,7 +73,9 @@ object FilterBuilder extends LogSupport {
   def buildReplaceWherePredicate(
       ds: DataFrame,
       partitionCol: String,
-      whereClause: String
+      partitionColPrefix: String = "",
+      partitionColTargetSchema: String = "",
+      whereClause: String = ""
   ): String = {
     if (ds != null && partitionCol.nonEmpty) {
       val replaceWhere = new mutable.StringBuilder(s"$whereClause")
@@ -79,14 +84,20 @@ object FilterBuilder extends LogSupport {
       }
 
       val values = ds
-        .select(partitionCol)
+        .select(s"$partitionColPrefix$partitionCol")
         .distinct
         .as[String](Encoders.STRING)
         .filter(x => !x.toLowerCase.contains("null"))
         .cache()
 
       if (!values.isEmpty) {
-        replaceWhere.append(s"$partitionCol in (")
+        val replaceWhereAppend: String =
+          if (partitionColTargetSchema.nonEmpty) {
+            s"$partitionColTargetSchema.$partitionCol in ("
+          } else {
+            s"$partitionCol in ("
+          }
+        replaceWhere.append(replaceWhereAppend)
         replaceWhere.append(
           values
             .map(partition =>
