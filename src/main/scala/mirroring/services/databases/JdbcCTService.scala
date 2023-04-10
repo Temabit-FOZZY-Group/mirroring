@@ -38,7 +38,7 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
         params
       )
       logger.info("Building DataFrame from result set...")
-      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(resultSet).cache()
+      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSetTest(resultSet).cache()
       // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
       jdbcDF

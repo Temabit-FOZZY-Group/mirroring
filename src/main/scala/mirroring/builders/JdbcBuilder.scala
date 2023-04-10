@@ -17,8 +17,15 @@
 package mirroring.builders
 
 import java.sql.{CallableStatement, Connection, ResultSet}
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import org.apache.spark.sql.types.{
+  IntegerType,
+  StringType,
+  TimestampType,
+  DoubleType,
+  StructField,
+  StructType
+}
+import org.apache.spark.sql.{DataFrame, Row, RowFactory, SQLContext, SparkSession}
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkService.spark
 import mirroring.services.databases.JdbcContext
@@ -114,6 +121,48 @@ object JdbcBuilder extends LogSupport {
       }
     }
     params
+  }
+
+  def buildDataFrameFromResultSetTest(rs: ResultSet): DataFrame = {
+    val rowList     = new scala.collection.mutable.MutableList[Row]
+    var cRow: Row   = null
+    val md          = rs.getMetaData
+    val columnCount = md.getColumnCount
+    // Prepare a schema and columns
+    val schema = getSchema(rs)
+    //Looping resultset
+    while (rs.next()) {
+      //adding columns into a "Row" object
+      cRow = RowFactory.create(
+        rs.getObject(1),
+        rs.getObject(2),
+        rs.getObject(3),
+        rs.getObject(4),
+        rs.getObject(5),
+        rs.getObject(6),
+        rs.getObject(7),
+        rs.getObject(8)
+      )
+      //adding each rows into "List" object.
+      rowList += (cRow)
+    }
+    // generate DataFrame
+    val df: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(rowList), schema)
+    df
+  }
+
+  def getSchema(rs: ResultSet): StructType = {
+    val schema = StructType(
+      StructField("activityid", IntegerType, true) ::
+        StructField("FilId", IntegerType, true) ::
+        StructField("activityName", StringType, true) ::
+        StructField("created", TimestampType, true) ::
+        StructField("val", DoubleType, true) ::
+        StructField("SYS_CHANGE_OPERATION", StringType, true) ::
+        StructField("SYS_CHANGE_PK_activityId", IntegerType, true) ::
+        StructField("SYS_CHANGE_PK_FilId", IntegerType, true) :: Nil
+    )
+    schema
   }
 
 }
