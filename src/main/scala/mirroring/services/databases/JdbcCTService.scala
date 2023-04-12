@@ -16,6 +16,7 @@
 
 package mirroring.services.databases
 
+import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.DataFrame
 import mirroring.builders._
 import wvlet.log.LogSupport
@@ -25,7 +26,7 @@ import java.sql.{DriverManager, ResultSet}
 class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) with LogSupport {
 
   override def loadData(@annotation.unused _query: String = ""): DataFrame = {
-    val connection = DriverManager.getConnection(url)
+    @transient lazy val connection = DriverManager.getConnection(url)
     val params: Array[String] = JdbcBuilder.buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
       jdbcContext
@@ -38,7 +39,7 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
         params
       )
       logger.info("Building DataFrame from result set...")
-      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSetTest(resultSet).cache()
+      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(resultSet).cache()
       // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
       jdbcDF

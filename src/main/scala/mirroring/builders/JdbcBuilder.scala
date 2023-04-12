@@ -25,6 +25,7 @@ import org.apache.spark.sql.types.{
   StructField,
   StructType
 }
+import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.{DataFrame, Row, RowFactory, SQLContext, SparkSession}
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkService.spark
@@ -96,7 +97,7 @@ object JdbcBuilder extends LogSupport {
       sparkSession: SparkSession
   ): DataFrame = {
     val rdd =
-      sparkSession.sparkContext.parallelize(resultSetToIter(rs, columns)(parseResultSet).toSeq)
+      sparkSession.sparkContext.makeRDD(resultSetToIter(rs, columns)(parseResultSet).toSeq)
     sparkSession.createDataFrame(rdd, schema)
   }
 
@@ -163,6 +164,20 @@ object JdbcBuilder extends LogSupport {
         StructField("SYS_CHANGE_PK_FilId", IntegerType, true) :: Nil
     )
     schema
+  }
+
+  def resultSetToObjectArray(rs: ResultSet): Array[Object] = {
+    Array.tabulate[Object](rs.getMetaData.getColumnCount)(i => rs.getObject(i + 1))
+  }
+
+  def buildDataFrameFromRS(rs: ResultSet): DataFrame = {
+//    spark.createDataFrame(
+//      spark.sparkContext.makeRDD(
+//        resultSetToObjectArray(rs).map(row => Row.fromSeq(row.toString))
+//      ),
+//      buildStructFromResultSet(rs)
+//    )
+    spark.createDataFrame(resultSetToObjectArray(rs).map(Row.fromSeq(Seq(_)), buildStructFromResultSet(rs))
   }
 
 }
