@@ -51,8 +51,8 @@ object JdbcCTService extends LogSupport {
         spark.sparkContext,
         cm,
         jdbcContext.ctChangesQuery,
-        params(0).toInt,
-        params(1).toInt,
+        params(0).toLong,
+        params(1).toLong,
         1,
         r => JdbcRDD.resultSetToObjectArray(r)
       )
