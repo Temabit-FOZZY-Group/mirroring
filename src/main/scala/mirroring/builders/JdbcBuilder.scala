@@ -172,7 +172,7 @@ object JdbcBuilder extends LogSupport {
   }
 
   def resultSetToStringArray(rs: ResultSet): Array[Object] = {
-    Array.tabulate[Object](rs.getMetaData.getColumnCount)(i => rs.getObject(i + 1))
+    Array.tabulate[Object](rs.getMetaData.getColumnCount)(i => rs.getString(i + 1))
   }
 
   def buildDataFrameFromRS(rs: ResultSet): DataFrame = {
