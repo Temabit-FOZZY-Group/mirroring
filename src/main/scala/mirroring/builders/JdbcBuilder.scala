@@ -18,21 +18,22 @@ package mirroring.builders
 
 import java.sql.{CallableStatement, Connection, ResultSet}
 import org.apache.spark.sql.types.{
-  IntegerType,
-  StringType,
-  TimestampType,
+  BooleanType,
+  DateType,
   DoubleType,
+  IntegerType,
+  FloatType,
+  LongType,
+  StringType,
   StructField,
-  StructType
+  StructType,
+  TimestampType
 }
-import org.apache.spark.rdd.{RDD, JdbcRDD}
-import org.apache.spark.sql.{DataFrame, Row, RowFactory, SQLContext, SparkSession}
 import org.apache.spark.rdd.JdbcRDD
+import org.apache.spark.sql.{DataFrame, Row}
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkService.spark
 import mirroring.services.databases.JdbcContext
-
-import scala.collection.mutable.ListBuffer
 import wvlet.log.LogSupport
 
 object JdbcBuilder extends LogSupport {
@@ -53,54 +54,25 @@ object JdbcBuilder extends LogSupport {
   }
 
   def buildStructFromResultSet(rs: ResultSet): StructType = {
-    val md                                        = rs.getMetaData
-    val columnCount                               = md.getColumnCount
-    val structFieldsList: ListBuffer[StructField] = new ListBuffer[StructField]()
-    for (i <- 1 to columnCount) {
-      structFieldsList += StructField(
+    val md          = rs.getMetaData
+    val columnCount = md.getColumnCount
+    val structFieldsList: List[StructField] = (1 to columnCount).map { i =>
+      StructField(
         md.getColumnName(i),
-        StringType,
-        if (md.isNullable(i) == 1) true else false
+        md.getColumnType(i) match {
+          case java.sql.Types.BOOLEAN   => BooleanType
+          case java.sql.Types.INTEGER   => IntegerType
+          case java.sql.Types.BIGINT    => LongType
+          case java.sql.Types.DOUBLE    => DoubleType
+          case java.sql.Types.FLOAT     => FloatType
+          case java.sql.Types.DATE      => DateType
+          case java.sql.Types.TIMESTAMP => TimestampType
+          case _                        => StringType
+        },
+        md.isNullable(i) == 1
       )
-    }
-    val schema = StructType(structFieldsList.toList)
-    schema
-  }
-
-  def buildDataFrameFromResultSet(rs: ResultSet): DataFrame = {
-    // Prepare a schema and columns
-    val schema = buildStructFromResultSet(rs)
-    val columns = schema.foldLeft(Seq.empty[String]) { (seq: Seq[String], col: StructField) =>
-      seq ++ Seq(col.name)
-    }
-    // generate DataFrame
-    val df: DataFrame = parallelizeResultSet(rs, columns, schema, spark)
-    df
-  }
-
-  // Define how each record will be converted in the ResultSet to a Row at each iteration
-  private def parseResultSet(rs: ResultSet, columns: Seq[String]): Row = {
-    val resultSetRecord = columns.map(c => rs.getString(c))
-    Row(resultSetRecord: _*)
-  }
-
-  private def resultSetToIter(rs: ResultSet, columns: Seq[String])(
-      f: (ResultSet, Seq[String]) => Row
-  ): Iterator[Row] =
-    new Iterator[Row] {
-      def hasNext: Boolean = rs.next()
-      def next(): Row      = f(rs, columns)
-    }
-
-  private def parallelizeResultSet(
-      rs: ResultSet,
-      columns: Seq[String],
-      schema: StructType,
-      sparkSession: SparkSession
-  ): DataFrame = {
-    val rdd =
-      sparkSession.sparkContext.makeRDD(resultSetToIter(rs, columns)(parseResultSet).toSeq)
-    sparkSession.createDataFrame(rdd, schema)
+    }.toList
+    StructType(structFieldsList)
   }
 
   def buildCTQueryParams(
@@ -126,54 +98,8 @@ object JdbcBuilder extends LogSupport {
     params
   }
 
-  def buildDataFrameFromResultSetTest(rs: ResultSet): DataFrame = {
-    val rowList     = new scala.collection.mutable.MutableList[Row]
-    var cRow: Row   = null
-    val md          = rs.getMetaData
-    val columnCount = md.getColumnCount
-    // Prepare a schema and columns
-    val schema = getSchema()
-    //Looping resultset
-    while (rs.next()) {
-      //adding columns into a "Row" object
-      cRow = RowFactory.create(
-        rs.getObject(1),
-        rs.getObject(2),
-        rs.getObject(3),
-        rs.getObject(4),
-        rs.getObject(5),
-        rs.getObject(6),
-        rs.getObject(7),
-        rs.getObject(8)
-      )
-      //adding each rows into "List" object.
-      rowList += (cRow)
-    }
-    // generate DataFrame
-    val df: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(rowList, 8), schema)
-    df
-  }
-
-  def getSchema(): StructType = {
-    val schema = StructType(
-      StructField("activityid", IntegerType, true) ::
-        StructField("FilId", IntegerType, true) ::
-        StructField("activityName", StringType, true) ::
-        StructField("created", TimestampType, true) ::
-        StructField("val", DoubleType, true) ::
-        StructField("SYS_CHANGE_OPERATION", StringType, true) ::
-        StructField("SYS_CHANGE_PK_activityId", IntegerType, true) ::
-        StructField("SYS_CHANGE_PK_FilId", IntegerType, true) :: Nil
-    )
-    schema
-  }
-
   def buildDataFrameFromRDD(rs: JdbcRDD[Array[Object]], schema: StructType): DataFrame = {
     spark.createDataFrame(rs.map(Row.fromSeq(_)), schema)
-  }
-
-  def resultSetToStringArray(rs: ResultSet): Array[Object] = {
-    Array.tabulate[Object](rs.getMetaData.getColumnCount)(i => rs.getString(i + 1))
   }
 
 }

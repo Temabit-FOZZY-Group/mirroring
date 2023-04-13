@@ -20,11 +20,9 @@ import mirroring.services.SparkService.spark
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.rdd.JdbcRDD
 import mirroring.builders._
-import mirroring.services.SparkService.spark
 import wvlet.log.LogSupport
 
 import java.sql.{DriverManager, ResultSet}
-import scala.collection.mutable
 
 object JdbcCTService extends LogSupport {
 
@@ -36,7 +34,6 @@ object JdbcCTService extends LogSupport {
       jdbcContext
     )
     try {
-      logger.info(JdbcBuilder.getSchema())
       logger.info("Extracting result set...")
       val resultSet: ResultSet = JdbcBuilder.buildJDBCResultSet(
         connection1,
@@ -51,7 +48,7 @@ object JdbcCTService extends LogSupport {
         params(0).toInt,
         params(1).toInt,
         1,
-        r => JdbcBuilder.resultSetToStringArray(r)
+        r => JdbcRDD.resultSetToObjectArray(r)
       )
       logger.info("Building DataFrame from result set...")
       val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromRDD(myRDD, schema)
