@@ -26,19 +26,22 @@ import wvlet.log.LogSupport
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
 
-  private lazy val jdbcContext                  = config.getJdbcContext
-  private lazy val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
+  private lazy val jdbcContext = config.getJdbcContext
 
   lazy val ctCurrentVersion: BigInt = {
     logger.info(s"Querying current change tracking version from the source...")
     val version: BigInt = if (config.CTCurrentVersionQuery.isEmpty) {
       logger.info("Change Tracking: use default query to get CTCurrentVersion")
-      jdbcCTService.getChangeTrackingVersion(ChangeTrackingBuilder.currentVersionQuery)
+      JdbcCTService.getChangeTrackingVersion(
+        query = ChangeTrackingBuilder.currentVersionQuery,
+        jdbcContext = jdbcContext
+      )
     } else {
       logger.info("Change Tracking: use custom CTCurrentVersionQuery")
-      jdbcCTService.getChangeTrackingVersion(
-        config.CTCurrentVersionQuery,
-        config.CTCurrentVersionParams
+      JdbcCTService.getChangeTrackingVersion(
+        query = config.CTCurrentVersionQuery,
+        parameters = config.CTCurrentVersionParams,
+        jdbcContext = jdbcContext
       )
     }
     logger.info(s"Current CT version for the MSSQL table: $version")
@@ -51,14 +54,16 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
     )
     val version: BigInt = if (config.CTMinValidVersionQuery.isEmpty) {
       logger.info("Change Tracking: use default query to get ChangeTrackingMinValidVersion")
-      jdbcCTService.getChangeTrackingVersion(
-        ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab)
+      JdbcCTService.getChangeTrackingVersion(
+        query = ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab),
+        jdbcContext = jdbcContext
       )
     } else {
       logger.info("Change Tracking: use custom CTMinValidVersionQuery")
-      jdbcCTService.getChangeTrackingVersion(
-        config.CTMinValidVersionQuery,
-        config.CTMinValidVersionParams
+      JdbcCTService.getChangeTrackingVersion(
+        query = config.CTMinValidVersionQuery,
+        parameters = config.CTMinValidVersionParams,
+        jdbcContext = jdbcContext
       )
     }
     logger.info(s"Min valid version for the MSSQL table: $version")

@@ -15,18 +15,20 @@
  */
 
 package mirroring.services.databases
-
-import org.apache.spark.rdd.JdbcRDD
+import mirroring.Runner.getUrl
+import mirroring.services.SparkService.spark
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.rdd.JdbcRDD
 import mirroring.builders._
 import mirroring.services.SparkService.spark
 import wvlet.log.LogSupport
 
 import java.sql.{DriverManager, ResultSet}
+import scala.collection.mutable
 
-class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) with LogSupport {
+object JdbcCTService extends LogSupport {
 
-  override def loadData(@annotation.unused _query: String = ""): DataFrame = {
+  def loadData(jdbcContext: JdbcContext, url: String): DataFrame = {
     @transient lazy val connection1 = DriverManager.getConnection(url)
     @transient lazy val connection  = DriverManager.getConnection(url)
     val params: Array[String] = JdbcBuilder.buildCTQueryParams(
@@ -52,7 +54,7 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
         r => JdbcBuilder.resultSetToStringArray(r)
       )
       logger.info("Building DataFrame from result set...")
-      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromRDD(myRDD, schema).cache()
+      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromRDD(myRDD, schema)
       // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
       jdbcDF
@@ -62,8 +64,6 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
           s"Error executing ${jdbcContext.ctChangesQuery} with params: ${params.mkString}"
         )
         throw e
-    } finally {
-      connection.close()
     }
   }
 
@@ -73,9 +73,11 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
     */
   def getChangeTrackingVersion(
       query: String,
-      parameters: Array[String] = Array[String]()
+      parameters: Array[String],
+      jdbcContext: JdbcContext
   ): BigInt = {
-    val connection = DriverManager.getConnection(url)
+    val url: String = getUrl(jdbcContext)
+    val connection  = DriverManager.getConnection(url)
     try {
       val params: Array[String] = JdbcBuilder.buildCTQueryParams(
         parameters,
@@ -97,8 +99,9 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
     }
   }
 
-  def getChangeTrackingVersion(query: String): BigInt = {
-    val jdbcDF: DataFrame = super[JdbcService].loadData(query).cache()
+  def getChangeTrackingVersion(query: String, jdbcContext: JdbcContext): BigInt = {
+    val jdbcService: JdbcService = new JdbcService(jdbcContext)
+    val jdbcDF: DataFrame        = jdbcService.loadData(query).cache()
 
     var version: BigInt = BigInt(0)
 

@@ -27,6 +27,7 @@ import org.apache.spark.sql.types.{
 }
 import org.apache.spark.rdd.{RDD, JdbcRDD}
 import org.apache.spark.sql.{DataFrame, Row, RowFactory, SQLContext, SparkSession}
+import org.apache.spark.rdd.JdbcRDD
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkService.spark
 import mirroring.services.databases.JdbcContext
@@ -149,7 +150,7 @@ object JdbcBuilder extends LogSupport {
       rowList += (cRow)
     }
     // generate DataFrame
-    val df: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(rowList), schema)
+    val df: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(rowList, 8), schema)
     df
   }
 
@@ -167,29 +168,12 @@ object JdbcBuilder extends LogSupport {
     schema
   }
 
-  def resultSetToObjectArray(rs: ResultSet): Array[Object] = {
-    Array.tabulate[Object](rs.getMetaData.getColumnCount)(i => rs.getObject(i + 1))
+  def buildDataFrameFromRDD(rs: JdbcRDD[Array[Object]], schema: StructType): DataFrame = {
+    spark.createDataFrame(rs.map(Row.fromSeq(_)), schema)
   }
 
   def resultSetToStringArray(rs: ResultSet): Array[Object] = {
     Array.tabulate[Object](rs.getMetaData.getColumnCount)(i => rs.getString(i + 1))
-  }
-
-  def buildDataFrameFromRS(rs: ResultSet): DataFrame = {
-    spark.createDataFrame(
-      spark.sparkContext.makeRDD(
-        resultSetToObjectArray(rs).map(row => Row.fromSeq(row.toString))
-      ),
-      buildStructFromResultSet(rs)
-    )
-//    spark.createDataFrame(
-//      resultSetToObjectArray(rs).map(Row.fromSeq(_)),
-//      buildStructFromResultSet(rs)
-//    )
-  }
-
-  def buildDataFrameFromRDD(rdd: JdbcRDD[Array[Object]], schema: StructType): DataFrame = {
-    spark.createDataFrame(rdd.map(Row.fromSeq(_)), schema)
   }
 
 }
