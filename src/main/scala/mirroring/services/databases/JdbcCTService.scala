@@ -29,24 +29,26 @@ import java.sql.{Connection, DriverManager, ResultSet}
 object JdbcCTService extends LogSupport {
 
   def loadData(jdbcContext: JdbcContext, url: String): DataFrame = {
-    class ConnectionMngr extends JdbcRDD.ConnectionFactory {
+    class ConnectionManager extends JdbcRDD.ConnectionFactory {
       override def getConnection: Connection = {
         DriverManager.getConnection(url)
       }
     }
-    val cm: ConnectionMngr = new ConnectionMngr
+    val cm: ConnectionManager = new ConnectionManager
     val params: Array[String] = JdbcBuilder.buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
       jdbcContext
     )
     try {
-      logger.info("Extracting result set...")
+      logger.debug("Executing procedure with Long.MaxValue to get schema...")
       val resultSet: ResultSet = JdbcBuilder.buildJDBCResultSet(
         cm.getConnection,
         jdbcContext.ctChangesQuery,
         Array(Long.MaxValue.toString, Long.MaxValue.toString)
       )
       val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
+      logger.debug(schema)
+      logger.debug("Executing procedure to create rdd...")
       val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
         spark.sparkContext,
         cm,
@@ -56,7 +58,7 @@ object JdbcCTService extends LogSupport {
         1,
         r => JdbcRDD.resultSetToObjectArray(r)
       )
-      logger.info("Building DataFrame from result set...")
+      logger.debug("Building DataFrame from result set...")
       val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromRDD(myRDD, schema)
       // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
