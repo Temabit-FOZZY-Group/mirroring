@@ -20,7 +20,8 @@ import io.delta.tables.DeltaTable
 import mirroring.Config
 import mirroring.builders._
 import mirroring.services.SparkService.spark
-import mirroring.services.databases.JdbcCTService
+import mirroring.services.databases.{JdbcContext, JdbcCTService}
+import mirroring.services.writer.WriterContext
 import wvlet.log.LogSupport
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
@@ -111,18 +112,28 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
     }
   }
 
-  def query: String = {
-    var query =
-      s"(select * from [${config.schema}].[${config.tab}] with (nolock) where 1=1) as subq"
-    if (DeltaTable.isDeltaTable(spark, config.pathToSave)) {
-      require(
-        changeTrackingLastVersion >= ctMinValidVersion,
-        "Invalid Change Tracking version. Client table must be reinitialized."
-      )
-      query = ctChangesQuery
+  def query(isDeltaTableExists: Boolean): String = {
+    if (isDeltaTableExists) {
+      ctChangesQuery
     } else {
       logger.info("Target table doesn't exist yet. Reading data in full ...")
+      s"(select * from [${config.schema}].[${config.tab}] with (nolock) where 1=1) as subq"
     }
-    query
+  }
+
+  def changeTrackingFlow(
+      isDeltaTableExists: Boolean,
+      currentWriterContext: WriterContext,
+      currentJdbcContext: JdbcContext
+  ): Unit = {
+    currentWriterContext.ctCurrentVersion = ctCurrentVersion
+    currentJdbcContext._ctCurrentVersion = Some(ctCurrentVersion)
+    currentJdbcContext._changeTrackingLastVersion = () => Some(changeTrackingLastVersion())
+    if (isDeltaTableExists) {
+      require(
+        changeTrackingLastVersion() >= ctMinValidVersion,
+        "Invalid Change Tracking version. Client table must be reinitialized."
+      )
+    }
   }
 }

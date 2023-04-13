@@ -21,6 +21,8 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkService.spark
+import mirroring.services.databases.JdbcContext
+
 import scala.collection.mutable.ListBuffer
 import wvlet.log.LogSupport
 
@@ -91,25 +93,22 @@ object JdbcBuilder extends LogSupport {
     sparkSession.createDataFrame(rdd, schema)
   }
 
-  def buildCTChangesQueryParams(
+  def buildCTQueryParams(
       CTChangesQueryParams: Array[String],
-      schema: String,
-      tab: String,
-      changeTrackingLastVersion: String,
-      ctCurrentVersion: String
+      jdbcContext: JdbcContext
   ): Array[String] = {
     var params: Array[String] = Array()
     for (param <- CTChangesQueryParams) {
       param match {
         case "defaultSQLTable" =>
           logger.info("Change Tracking default param used: SQLTable")
-          params :+= buildSQLObjectName(schema, tab)
+          params :+= buildSQLObjectName(jdbcContext.schema, jdbcContext.table)
         case "queryCTLastVersion" =>
           logger.info("Change Tracking default param used: querying last version")
-          params :+= changeTrackingLastVersion
+          params :+= jdbcContext.ctLastVersion.toString
         case "queryCTCurrentVersion" =>
           logger.info("Change Tracking default param used: querying current version")
-          params :+= ctCurrentVersion
+          params :+= jdbcContext.ctCurrentVersion.toString
         case _ =>
           params :+= param
       }

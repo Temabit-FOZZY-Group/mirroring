@@ -16,12 +16,13 @@
 
 package mirroring
 
+import io.delta.tables.DeltaTable
 import org.apache.spark.sql.DataFrame
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import mirroring.handlers.ChangeTrackingHandler
 import mirroring.services.databases.{JdbcCTService, JdbcPartitionedService, JdbcService}
-import mirroring.services.writer.{MergeService, ChangeTrackingService, DeltaService, WriterContext}
-import mirroring.services.{SparkService, SqlService, DeltaTableService}
+import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
+import mirroring.services.{DeltaTableService, SparkService, SqlService}
 import wvlet.log.LogSupport
 
 object Runner extends LogSupport {
@@ -52,26 +53,28 @@ object Runner extends LogSupport {
     val writerContext: WriterContext                 = config.getWriterContext
     var query: String                                = config.query
     val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(config)
+    lazy val isDeltaTableExists: Boolean = DeltaTable.isDeltaTable(
+      SparkService.spark,
+      config.pathToSave
+    )
 
-    if (config.isChangeTrackingEnabled) {
-      query = changeTrackingHandler.query
-      writerContext.ctCurrentVersion = changeTrackingHandler.ctCurrentVersion
-      jdbcContext._ctCurrentVersion = Some(changeTrackingHandler.ctCurrentVersion)
-      jdbcContext._changeTrackingLastVersion = () =>
-        Some(changeTrackingHandler.changeTrackingLastVersion())
-    }
-
-    val jdbcDF: DataFrame = if (config.CTChangesQuery.isEmpty) {
-      var jdbcService: JdbcService = new JdbcService(jdbcContext)
-      if (config.splitBy.nonEmpty) {
-        jdbcService = new JdbcPartitionedService(jdbcContext)
+    val jdbcDF: DataFrame =
+      if (config.isChangeTrackingEnabled && isDeltaTableExists && config.CTChangesQuery.nonEmpty) {
+        changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
+        logger.info("Change Tracking: use custom ctChangesQuery")
+        val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
+        jdbcCTService.loadData()
+      } else {
+        if (config.isChangeTrackingEnabled) {
+          changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
+          query = changeTrackingHandler.query(isDeltaTableExists)
+        }
+        var jdbcService: JdbcService = new JdbcService(jdbcContext)
+        if (config.splitBy.nonEmpty) {
+          jdbcService = new JdbcPartitionedService(jdbcContext)
+        }
+        jdbcService.loadData(query)
       }
-      jdbcService.loadData(query)
-    } else {
-      logger.info("Change Tracking: use custom ctChangesQuery")
-      val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
-      jdbcCTService.loadData()
-    }
 
     val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
