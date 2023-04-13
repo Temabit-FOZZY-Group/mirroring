@@ -16,19 +16,25 @@
 
 package mirroring.services.databases
 import mirroring.Runner.getUrl
-import mirroring.services.SparkService.spark
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.rdd.JdbcRDD
 import mirroring.builders._
+import mirroring.services.SparkService.spark
+import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.rdd.JdbcRDD
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.StructType
 import wvlet.log.LogSupport
 
-import java.sql.{DriverManager, ResultSet}
+import java.sql.{Connection, DriverManager, ResultSet}
 
 object JdbcCTService extends LogSupport {
 
   def loadData(jdbcContext: JdbcContext, url: String): DataFrame = {
-    @transient lazy val connection1 = DriverManager.getConnection(url)
-    @transient lazy val connection  = DriverManager.getConnection(url)
+    class ConnectionMngr extends JdbcRDD.ConnectionFactory {
+      override def getConnection: Connection = {
+        DriverManager.getConnection(url)
+      }
+    }
+    val cm: ConnectionMngr = new ConnectionMngr
     val params: Array[String] = JdbcBuilder.buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
       jdbcContext
@@ -36,14 +42,14 @@ object JdbcCTService extends LogSupport {
     try {
       logger.info("Extracting result set...")
       val resultSet: ResultSet = JdbcBuilder.buildJDBCResultSet(
-        connection1,
+        cm.getConnection,
         jdbcContext.ctChangesQuery,
         Array(Long.MaxValue.toString, Long.MaxValue.toString)
       )
-      val schema = JdbcBuilder.buildStructFromResultSet(resultSet)
-      val myRDD = new JdbcRDD(
+      val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
+      val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
         spark.sparkContext,
-        () => connection,
+        cm,
         jdbcContext.ctChangesQuery,
         params(0).toInt,
         params(1).toInt,

@@ -16,25 +16,15 @@
 
 package mirroring.builders
 
-import java.sql.{CallableStatement, Connection, ResultSet}
-import org.apache.spark.sql.types.{
-  BooleanType,
-  DateType,
-  DoubleType,
-  IntegerType,
-  FloatType,
-  LongType,
-  StringType,
-  StructField,
-  StructType,
-  TimestampType
-}
-import org.apache.spark.rdd.JdbcRDD
-import org.apache.spark.sql.{DataFrame, Row}
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkService.spark
 import mirroring.services.databases.JdbcContext
+import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{DataFrame, Row}
 import wvlet.log.LogSupport
+
+import java.sql.{CallableStatement, Connection, ResultSet}
 
 object JdbcBuilder extends LogSupport {
 
@@ -98,7 +88,7 @@ object JdbcBuilder extends LogSupport {
     params
   }
 
-  def buildDataFrameFromRDD(rs: JdbcRDD[Array[Object]], schema: StructType): DataFrame = {
+  def buildDataFrameFromRDD(rs: JavaRDD[Array[Object]], schema: StructType): DataFrame = {
     spark.createDataFrame(rs.map(Row.fromSeq(_)), schema)
   }
 
