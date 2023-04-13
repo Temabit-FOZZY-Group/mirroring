@@ -25,7 +25,7 @@ import org.apache.spark.sql.types.{
   StructField,
   StructType
 }
-import org.apache.spark.rdd.JdbcRDD
+import org.apache.spark.rdd.{RDD, JdbcRDD}
 import org.apache.spark.sql.{DataFrame, Row, RowFactory, SQLContext, SparkSession}
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkService.spark
@@ -41,7 +41,8 @@ object JdbcBuilder extends LogSupport {
       query: String,
       parameters: Array[String] = Array[String]()
   ): ResultSet = {
-    val cStmt: CallableStatement = connection.prepareCall(query)
+    val cStmt: CallableStatement =
+      connection.prepareCall(query)
     for ((parameter, i) <- parameters.zipWithIndex) {
       cStmt.setString(i + 1, parameter)
     }
@@ -130,7 +131,7 @@ object JdbcBuilder extends LogSupport {
     val md          = rs.getMetaData
     val columnCount = md.getColumnCount
     // Prepare a schema and columns
-    val schema = getSchema(rs)
+    val schema = getSchema()
     //Looping resultset
     while (rs.next()) {
       //adding columns into a "Row" object
@@ -152,7 +153,7 @@ object JdbcBuilder extends LogSupport {
     df
   }
 
-  def getSchema(rs: ResultSet): StructType = {
+  def getSchema(): StructType = {
     val schema = StructType(
       StructField("activityid", IntegerType, true) ::
         StructField("FilId", IntegerType, true) ::
@@ -170,14 +171,25 @@ object JdbcBuilder extends LogSupport {
     Array.tabulate[Object](rs.getMetaData.getColumnCount)(i => rs.getObject(i + 1))
   }
 
+  def resultSetToStringArray(rs: ResultSet): Array[Object] = {
+    Array.tabulate[Object](rs.getMetaData.getColumnCount)(i => rs.getObject(i + 1))
+  }
+
   def buildDataFrameFromRS(rs: ResultSet): DataFrame = {
+    spark.createDataFrame(
+      spark.sparkContext.makeRDD(
+        resultSetToObjectArray(rs).map(row => Row.fromSeq(row.toString))
+      ),
+      buildStructFromResultSet(rs)
+    )
 //    spark.createDataFrame(
-//      spark.sparkContext.makeRDD(
-//        resultSetToObjectArray(rs).map(row => Row.fromSeq(row.toString))
-//      ),
+//      resultSetToObjectArray(rs).map(Row.fromSeq(_)),
 //      buildStructFromResultSet(rs)
 //    )
-    spark.createDataFrame(resultSetToObjectArray(rs).map(Row.fromSeq(Seq(_)), buildStructFromResultSet(rs))
+  }
+
+  def buildDataFrameFromRDD(rdd: JdbcRDD[Array[Object]], schema: StructType): DataFrame = {
+    spark.createDataFrame(rdd.map(Row.fromSeq(_)), schema)
   }
 
 }

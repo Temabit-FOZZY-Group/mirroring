@@ -19,6 +19,7 @@ package mirroring.services.databases
 import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.DataFrame
 import mirroring.builders._
+import mirroring.services.SparkService.spark
 import wvlet.log.LogSupport
 
 import java.sql.{DriverManager, ResultSet}
@@ -26,20 +27,32 @@ import java.sql.{DriverManager, ResultSet}
 class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) with LogSupport {
 
   override def loadData(@annotation.unused _query: String = ""): DataFrame = {
-    @transient lazy val connection = DriverManager.getConnection(url)
+    @transient lazy val connection1 = DriverManager.getConnection(url)
+    @transient lazy val connection  = DriverManager.getConnection(url)
     val params: Array[String] = JdbcBuilder.buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
       jdbcContext
     )
     try {
+      logger.info(JdbcBuilder.getSchema())
       logger.info("Extracting result set...")
       val resultSet: ResultSet = JdbcBuilder.buildJDBCResultSet(
-        connection,
+        connection1,
         jdbcContext.ctChangesQuery,
-        params
+        Array(Long.MaxValue.toString, Long.MaxValue.toString)
+      )
+      val schema = JdbcBuilder.buildStructFromResultSet(resultSet)
+      val myRDD = new JdbcRDD(
+        spark.sparkContext,
+        () => connection,
+        jdbcContext.ctChangesQuery,
+        params(0).toInt,
+        params(1).toInt,
+        1,
+        r => JdbcBuilder.resultSetToStringArray(r)
       )
       logger.info("Building DataFrame from result set...")
-      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromResultSet(resultSet).cache()
+      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromRDD(myRDD, schema).cache()
       // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
       jdbcDF
