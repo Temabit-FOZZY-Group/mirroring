@@ -40,15 +40,15 @@ object JdbcCTService extends LogSupport {
       jdbcContext
     )
     try {
-      logger.debug("Executing procedure with Long.MaxValue to get schema...")
+      logger.info("Executing procedure with Long.MaxValue to get schema...")
       val resultSet: ResultSet = JdbcBuilder.buildJDBCResultSet(
         cm.getConnection,
         jdbcContext.ctChangesQuery,
         Array(Long.MaxValue.toString, Long.MaxValue.toString)
       )
       val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
-      logger.debug(schema)
-      logger.debug("Executing procedure to create rdd...")
+      logger.info(schema)
+      logger.info("Executing procedure to create rdd...")
       val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
         spark.sparkContext,
         cm,
@@ -58,7 +58,7 @@ object JdbcCTService extends LogSupport {
         1,
         r => JdbcRDD.resultSetToObjectArray(r)
       )
-      logger.debug("Building DataFrame from result set...")
+      logger.info("Building DataFrame from result set...")
       val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromRDD(myRDD, schema)
       // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
       logger.info(s"Number of incoming rows: ${jdbcDF.count}")
