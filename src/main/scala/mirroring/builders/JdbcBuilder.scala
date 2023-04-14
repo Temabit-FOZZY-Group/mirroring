@@ -47,18 +47,10 @@ object JdbcBuilder extends LogSupport {
     val md          = rs.getMetaData
     val columnCount = md.getColumnCount
     val structFieldsList: List[StructField] = (1 to columnCount).map { i =>
+      logger.info(i, md.getColumnName(i), md.getColumnType(i))
       StructField(
         md.getColumnName(i),
-        md.getColumnType(i) match {
-          case java.sql.Types.BOOLEAN   => BooleanType
-          case java.sql.Types.INTEGER   => IntegerType
-          case java.sql.Types.BIGINT    => LongType
-          case java.sql.Types.DOUBLE    => DoubleType
-          case java.sql.Types.FLOAT     => FloatType
-          case java.sql.Types.DATE      => DateType
-          case java.sql.Types.TIMESTAMP => TimestampType
-          case _                        => StringType
-        },
+        fromJavaSQLType(md.getColumnType(i)),
         md.isNullable(i) == 1
       )
     }.toList
@@ -90,6 +82,20 @@ object JdbcBuilder extends LogSupport {
 
   def buildDataFrameFromRDD(rs: JavaRDD[Array[Object]], schema: StructType): DataFrame = {
     spark.createDataFrame(rs.map(Row.fromSeq(_)), schema)
+  }
+
+  private def fromJavaSQLType(colType: Int): DataType = colType match {
+    case java.sql.Types.BOOLEAN | java.sql.Types.BIT                               => BooleanType
+    case java.sql.Types.TINYINT | java.sql.Types.SMALLINT | java.sql.Types.INTEGER => IntegerType
+    case java.sql.Types.BIGINT                                                     => LongType
+    case java.sql.Types.NUMERIC | java.sql.Types.DECIMAL                           => DecimalType(38, 10)
+    case java.sql.Types.FLOAT                                                      => FloatType
+    case java.sql.Types.DOUBLE                                                     => DoubleType
+    case java.sql.Types.BINARY | java.sql.Types.VARBINARY | java.sql.Types.LONGVARBINARY =>
+      BinaryType
+    case java.sql.Types.DATE      => DateType
+    case java.sql.Types.TIMESTAMP => TimestampType
+    case _                        => StringType
   }
 
 }
