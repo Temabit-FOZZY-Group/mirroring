@@ -20,16 +20,9 @@ import io.delta.tables.DeltaTable
 import org.apache.spark.sql.DataFrame
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import mirroring.handlers.ChangeTrackingHandler
-import mirroring.services.databases.{
-  JdbcCTService,
-  JdbcContext,
-  JdbcPartitionedService,
-  JdbcService
-}
+import mirroring.services.databases.{JdbcCTService, JdbcPartitionedService, JdbcService}
 import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
 import mirroring.services.{DeltaTableService, SparkService, SqlService}
-
-import scala.collection.mutable
 import wvlet.log.LogSupport
 
 object Runner extends LogSupport {
@@ -69,8 +62,7 @@ object Runner extends LogSupport {
       if (config.isChangeTrackingEnabled && isDeltaTableExists && config.CTChangesQuery.nonEmpty) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
         logger.info("Change Tracking: use custom ctChangesQuery")
-        val url: String = getUrl(jdbcContext)
-        JdbcCTService.loadData(jdbcContext, url)
+        JdbcCTService.loadData(jdbcContext)
       } else {
         if (config.isChangeTrackingEnabled) {
           changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
@@ -116,29 +108,4 @@ object Runner extends LogSupport {
     }
   }
 
-  def getUrl(jdbcContext: JdbcContext): String = {
-    val MssqlUser: String     = sys.env.getOrElse("MSSQL_USER", "")
-    val MssqlPassword: String = sys.env.getOrElse("MSSQL_PASSWORD", "")
-
-    lazy val url: String = {
-      // If user/password are passed through environment variables, extract them and append to the url
-      val sb = new mutable.StringBuilder(jdbcContext.url)
-      if (
-        !jdbcContext.url.contains("user") && !jdbcContext.url.contains(
-          "password"
-        ) && MssqlUser.nonEmpty && MssqlPassword.nonEmpty
-      ) {
-        if (!jdbcContext.url.endsWith(";")) {
-          sb.append(";")
-        }
-        sb.append(s"user=$MssqlUser;password=$MssqlPassword")
-      }
-      require(
-        sb.toString.contains("password="),
-        "Parameters user and password are required for jdbc connection."
-      )
-      sb.toString
-    }
-    url
-  }
 }

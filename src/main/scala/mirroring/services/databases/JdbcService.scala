@@ -21,34 +21,7 @@ import mirroring.DatatypeMapping
 import mirroring.services.SparkService.spark
 import wvlet.log.LogSupport
 
-import scala.collection.mutable
-
 class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
-
-  val MssqlUser: String     = sys.env.getOrElse("MSSQL_USER", "")
-  val MssqlPassword: String = sys.env.getOrElse("MSSQL_PASSWORD", "")
-
-  lazy val url: String = {
-    // If user/password are passed through environment variables, extract them and append to the url
-    val sb = new mutable.StringBuilder(jdbcContext.url)
-    if (
-      !jdbcContext.url.contains("user") && !jdbcContext.url.contains(
-        "password"
-      ) && MssqlUser.nonEmpty && MssqlPassword.nonEmpty
-    ) {
-      if (!jdbcContext.url.endsWith(";")) {
-        sb.append(";")
-      }
-      sb.append(s"user=$MssqlUser;password=$MssqlPassword")
-    }
-
-    require(
-      sb.toString.contains("password="),
-      "Parameters user and password are required for jdbc connection."
-    )
-
-    sb.toString
-  }
 
   protected lazy val customSchema: String = {
     val sql =
@@ -56,7 +29,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
         s"TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}') as subq"
 
     val sourceSchema =
-      spark.read.format("jdbc").option("url", url).option("dbtable", sql).load()
+      spark.read.format("jdbc").option("url", jdbcContext.url).option("dbtable", sql).load()
 
     // create custom schema to avoid transferring DATE as STRING
     // viz https://jtds.sourceforge.net/typemap.html
@@ -89,7 +62,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
   def dfReader: DataFrameReader = {
     spark.read
       .format("jdbc")
-      .option("url", url)
+      .option("url", jdbcContext.url)
       .option("customSchema", customSchema)
   }
 }

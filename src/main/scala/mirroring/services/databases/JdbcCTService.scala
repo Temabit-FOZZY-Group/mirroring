@@ -15,7 +15,6 @@
  */
 
 package mirroring.services.databases
-import mirroring.Runner.getUrl
 import mirroring.builders._
 import mirroring.services.SparkService.spark
 import org.apache.spark.api.java.JavaRDD
@@ -28,10 +27,10 @@ import java.sql.{Connection, DriverManager, ResultSet}
 
 object JdbcCTService extends LogSupport {
 
-  def loadData(jdbcContext: JdbcContext, url: String): DataFrame = {
+  def loadData(jdbcContext: JdbcContext): DataFrame = {
     class ConnectionManager extends JdbcRDD.ConnectionFactory {
       override def getConnection: Connection = {
-        DriverManager.getConnection(url)
+        DriverManager.getConnection(jdbcContext.url)
       }
     }
     val cm: ConnectionManager = new ConnectionManager
@@ -78,8 +77,7 @@ object JdbcCTService extends LogSupport {
       parameters: Array[String],
       jdbcContext: JdbcContext
   ): BigInt = {
-    val url: String = getUrl(jdbcContext)
-    val connection  = DriverManager.getConnection(url)
+    val connection = DriverManager.getConnection(jdbcContext.url)
     try {
       val params: Array[String] = JdbcBuilder.buildCTQueryParams(
         parameters,

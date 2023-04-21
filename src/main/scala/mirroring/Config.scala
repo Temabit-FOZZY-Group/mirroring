@@ -181,7 +181,7 @@ case class Config(
 
   def getJdbcContext: JdbcContext = {
     JdbcContext(
-      jdbcUrl = _jdbcUrl,
+      jdbcUrl = getUrl(_jdbcUrl),
       inTable = tab,
       inSchema = schema,
       numPart = numPart,
@@ -202,6 +202,32 @@ case class Config(
       primary_key,
       whereClause.toString
     )
+  }
+
+  private def getUrl(_jdbcUrl: String): String = {
+    val MssqlUser: String     = sys.env.getOrElse("MSSQL_USER", "")
+    val MssqlPassword: String = sys.env.getOrElse("MSSQL_PASSWORD", "")
+
+    val url: String = {
+      // If user/password are passed through environment variables, extract them and append to the url
+      val sb = new mutable.StringBuilder(_jdbcUrl)
+      if (
+        !_jdbcUrl.contains("user") && !_jdbcUrl.contains(
+          "password"
+        ) && MssqlUser.nonEmpty && MssqlPassword.nonEmpty
+      ) {
+        if (!_jdbcUrl.endsWith(";")) {
+          sb.append(";")
+        }
+        sb.append(s"user=$MssqlUser;password=$MssqlPassword")
+      }
+      require(
+        sb.toString.contains("password="),
+        "Parameters user and password are required for jdbc connection."
+      )
+      sb.toString
+    }
+    url
   }
 
   override def toString: String = {
