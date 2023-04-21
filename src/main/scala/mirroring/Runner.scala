@@ -83,6 +83,8 @@ object Runner extends LogSupport {
         jdbcService.loadData(query)
       }
 
+    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
+
     val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
 

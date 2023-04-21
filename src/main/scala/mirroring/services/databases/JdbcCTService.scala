@@ -59,10 +59,7 @@ object JdbcCTService extends LogSupport {
         r => JdbcRDD.resultSetToObjectArray(r)
       )
       logger.info("Building DataFrame from result set...")
-      val jdbcDF: DataFrame = JdbcBuilder.buildDataFrameFromRDD(myRDD, schema)
-      // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
-      logger.info(s"Number of incoming rows: ${jdbcDF.count}")
-      jdbcDF
+      JdbcBuilder.buildDataFrameFromRDD(myRDD, schema).cache()
     } catch {
       case e: Exception =>
         logger.error(

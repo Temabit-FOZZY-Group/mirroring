@@ -83,9 +83,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
   }
   def loadData(_query: String): DataFrame = {
     logger.info(s"Reading data with query: ${_query}")
-    val jdbcDF = dfReader.option("dbtable", _query).load().cache()
-    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
-    jdbcDF
+    dfReader.option("dbtable", _query).load().cache()
   }
 
   def dfReader: DataFrameReader = {
