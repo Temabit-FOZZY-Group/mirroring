@@ -89,7 +89,7 @@ object JdbcBuilder extends LogSupport {
     case java.sql.Types.TINYINT | java.sql.Types.SMALLINT | java.sql.Types.INTEGER => IntegerType
     case java.sql.Types.BIGINT                                                     => LongType
     case java.sql.Types.NUMERIC | java.sql.Types.DECIMAL                           => DecimalType(precision, scale)
-    case java.sql.Types.FLOAT                                                      => FloatType
+    case java.sql.Types.FLOAT | java.sql.Types.REAL                                => FloatType
     case java.sql.Types.DOUBLE                                                     => DoubleType
     case java.sql.Types.BINARY | java.sql.Types.VARBINARY | java.sql.Types.LONGVARBINARY =>
       BinaryType
