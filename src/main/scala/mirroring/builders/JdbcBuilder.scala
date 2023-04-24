@@ -47,7 +47,6 @@ object JdbcBuilder extends LogSupport {
     val md          = rs.getMetaData
     val columnCount = md.getColumnCount
     val structFieldsList: List[StructField] = (1 to columnCount).map { i =>
-      logger.info(i, md.getColumnName(i), md.getColumnType(i), md.getPrecision(i), md.getScale(i))
       StructField(
         md.getColumnName(i),
         fromJavaSQLType(md.getColumnType(i), md.getPrecision(i), md.getScale(i)),
