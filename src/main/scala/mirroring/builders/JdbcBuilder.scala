@@ -16,15 +16,15 @@
 
 package mirroring.builders
 
-import java.sql.{CallableStatement, Connection, ResultSet}
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkService.spark
 import mirroring.services.databases.JdbcContext
-
-import scala.collection.mutable.ListBuffer
+import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{DataFrame, Row}
 import wvlet.log.LogSupport
+
+import java.sql.{CallableStatement, Connection, ResultSet}
 
 object JdbcBuilder extends LogSupport {
 
@@ -33,7 +33,8 @@ object JdbcBuilder extends LogSupport {
       query: String,
       parameters: Array[String] = Array[String]()
   ): ResultSet = {
-    val cStmt: CallableStatement = connection.prepareCall(query)
+    val cStmt: CallableStatement =
+      connection.prepareCall(query)
     for ((parameter, i) <- parameters.zipWithIndex) {
       cStmt.setString(i + 1, parameter)
     }
@@ -43,54 +44,16 @@ object JdbcBuilder extends LogSupport {
   }
 
   def buildStructFromResultSet(rs: ResultSet): StructType = {
-    val md                                        = rs.getMetaData
-    val columnCount                               = md.getColumnCount
-    val structFieldsList: ListBuffer[StructField] = new ListBuffer[StructField]()
-    for (i <- 1 to columnCount) {
-      structFieldsList += StructField(
+    val md          = rs.getMetaData
+    val columnCount = md.getColumnCount
+    val structFieldsList: List[StructField] = (1 to columnCount).map { i =>
+      StructField(
         md.getColumnName(i),
-        StringType,
-        if (md.isNullable(i) == 1) true else false
+        fromJavaSQLType(md.getColumnType(i), md.getPrecision(i), md.getScale(i)),
+        md.isNullable(i) == 1
       )
-    }
-    val schema = StructType(structFieldsList.toList)
-    schema
-  }
-
-  def buildDataFrameFromResultSet(rs: ResultSet): DataFrame = {
-    // Prepare a schema and columns
-    val schema = buildStructFromResultSet(rs)
-    val columns = schema.foldLeft(Seq.empty[String]) { (seq: Seq[String], col: StructField) =>
-      seq ++ Seq(col.name)
-    }
-    // generate DataFrame
-    val df: DataFrame = parallelizeResultSet(rs, columns, schema, spark)
-    df
-  }
-
-  // Define how each record will be converted in the ResultSet to a Row at each iteration
-  private def parseResultSet(rs: ResultSet, columns: Seq[String]): Row = {
-    val resultSetRecord = columns.map(c => rs.getString(c))
-    Row(resultSetRecord: _*)
-  }
-
-  private def resultSetToIter(rs: ResultSet, columns: Seq[String])(
-      f: (ResultSet, Seq[String]) => Row
-  ): Iterator[Row] =
-    new Iterator[Row] {
-      def hasNext: Boolean = rs.next()
-      def next(): Row      = f(rs, columns)
-    }
-
-  private def parallelizeResultSet(
-      rs: ResultSet,
-      columns: Seq[String],
-      schema: StructType,
-      sparkSession: SparkSession
-  ): DataFrame = {
-    val rdd =
-      sparkSession.sparkContext.parallelize(resultSetToIter(rs, columns)(parseResultSet).toSeq)
-    sparkSession.createDataFrame(rdd, schema)
+    }.toList
+    StructType(structFieldsList)
   }
 
   def buildCTQueryParams(
@@ -114,6 +77,24 @@ object JdbcBuilder extends LogSupport {
       }
     }
     params
+  }
+
+  def buildDataFrameFromRDD(rs: JavaRDD[Array[Object]], schema: StructType): DataFrame = {
+    spark.createDataFrame(rs.map(Row.fromSeq(_)), schema)
+  }
+
+  private def fromJavaSQLType(colType: Int, precision: Int, scale: Int): DataType = colType match {
+    case java.sql.Types.BOOLEAN | java.sql.Types.BIT                               => BooleanType
+    case java.sql.Types.TINYINT | java.sql.Types.SMALLINT | java.sql.Types.INTEGER => IntegerType
+    case java.sql.Types.BIGINT                                                     => LongType
+    case java.sql.Types.NUMERIC | java.sql.Types.DECIMAL                           => DecimalType(precision, scale)
+    case java.sql.Types.FLOAT | java.sql.Types.REAL                                => FloatType
+    case java.sql.Types.DOUBLE                                                     => DoubleType
+    case java.sql.Types.BINARY | java.sql.Types.VARBINARY | java.sql.Types.LONGVARBINARY =>
+      BinaryType
+    case java.sql.Types.DATE      => DateType
+    case java.sql.Types.TIMESTAMP => TimestampType
+    case _                        => StringType
   }
 
 }

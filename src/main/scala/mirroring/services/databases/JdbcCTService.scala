@@ -15,42 +15,56 @@
  */
 
 package mirroring.services.databases
-
-import org.apache.spark.sql.DataFrame
 import mirroring.builders._
+import mirroring.services.SparkService.spark
+import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.rdd.JdbcRDD
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.StructType
 import wvlet.log.LogSupport
 
-import java.sql.DriverManager
+import java.sql.{Connection, DriverManager, ResultSet}
 
-class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) with LogSupport {
+object JdbcCTService extends LogSupport {
 
-  override def loadData(@annotation.unused _query: String = ""): DataFrame = {
-    val connection = DriverManager.getConnection(url)
+  def loadData(jdbcContext: JdbcContext): DataFrame = {
+    class ConnectionManager extends JdbcRDD.ConnectionFactory {
+      override def getConnection: Connection = {
+        DriverManager.getConnection(jdbcContext.url)
+      }
+    }
+    val cm: ConnectionManager = new ConnectionManager
     val params: Array[String] = JdbcBuilder.buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
       jdbcContext
     )
     try {
-      val jdbcDF: DataFrame = JdbcBuilder
-        .buildDataFrameFromResultSet(
-          JdbcBuilder.buildJDBCResultSet(
-            connection,
-            jdbcContext.ctChangesQuery,
-            params
-          )
-        )
-        .cache()
-      // spark.createDataFrame is lazy so action on jdbcDF is needed while ResultSet is open
-      logger.info(s"Number of incoming rows: ${jdbcDF.count}")
-      jdbcDF
+      logger.info("Executing procedure with Long.MaxValue to get schema...")
+      val resultSet: ResultSet = JdbcBuilder.buildJDBCResultSet(
+        cm.getConnection,
+        jdbcContext.ctChangesQuery,
+        Array(Long.MaxValue.toString, Long.MaxValue.toString)
+      )
+      val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
+      logger.info(schema)
+      logger.info("Executing procedure to create rdd...")
+      val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
+        spark.sparkContext,
+        cm,
+        jdbcContext.ctChangesQuery,
+        params(0).toLong,
+        params(1).toLong,
+        1,
+        r => JdbcRDD.resultSetToObjectArray(r)
+      )
+      logger.info("Building DataFrame from result set...")
+      JdbcBuilder.buildDataFrameFromRDD(myRDD, schema).cache()
     } catch {
       case e: Exception =>
         logger.error(
           s"Error executing ${jdbcContext.ctChangesQuery} with params: ${params.mkString}"
         )
         throw e
-    } finally {
-      connection.close()
     }
   }
 
@@ -60,9 +74,10 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
     */
   def getChangeTrackingVersion(
       query: String,
-      parameters: Array[String] = Array[String]()
+      parameters: Array[String],
+      jdbcContext: JdbcContext
   ): BigInt = {
-    val connection = DriverManager.getConnection(url)
+    val connection = DriverManager.getConnection(jdbcContext.url)
     try {
       val params: Array[String] = JdbcBuilder.buildCTQueryParams(
         parameters,
@@ -84,8 +99,9 @@ class JdbcCTService(jdbcContext: JdbcContext) extends JdbcService(jdbcContext) w
     }
   }
 
-  def getChangeTrackingVersion(query: String): BigInt = {
-    val jdbcDF: DataFrame = super[JdbcService].loadData(query).cache()
+  def getChangeTrackingVersion(query: String, jdbcContext: JdbcContext): BigInt = {
+    val jdbcService: JdbcService = new JdbcService(jdbcContext)
+    val jdbcDF: DataFrame        = jdbcService.loadData(query).cache()
 
     var version: BigInt = BigInt(0)
 

@@ -62,8 +62,7 @@ object Runner extends LogSupport {
       if (config.isChangeTrackingEnabled && isDeltaTableExists && config.CTChangesQuery.nonEmpty) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
         logger.info("Change Tracking: use custom ctChangesQuery")
-        val jdbcCTService: JdbcCTService = new JdbcCTService(jdbcContext)
-        jdbcCTService.loadData()
+        JdbcCTService.loadData(jdbcContext)
       } else {
         if (config.isChangeTrackingEnabled) {
           changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
@@ -75,6 +74,8 @@ object Runner extends LogSupport {
         }
         jdbcService.loadData(query)
       }
+
+    logger.info(s"Number of incoming rows: ${jdbcDF.count}")
 
     val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
     jdbcDF.unpersist()
@@ -106,4 +107,5 @@ object Runner extends LogSupport {
       SqlService.run(config)
     }
   }
+
 }
