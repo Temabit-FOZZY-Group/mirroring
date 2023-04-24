@@ -16,10 +16,10 @@
 
 package mirroring.builders
 
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.{col, to_date, to_utc_timestamp, current_timestamp}
-import mirroring.services.SparkService
 import mirroring.Config
+import mirroring.services.SparkService
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.{col, current_timestamp, to_date, to_utc_timestamp}
 
 object DataframeBuilder {
 
@@ -85,7 +85,9 @@ object DataframeBuilder {
 
     if (!ctx.disablePlatformIngestedAt) {
       // Generate _platform_ingested_at column
-      df = df.withColumn("_platform_ingested_at", current_timestamp())
+      df = df
+        .withColumn("_platform_ingested_at", current_timestamp())
+        .select("_platform_ingested_at", df.columns: _*)
     }
 
     df
