@@ -95,13 +95,13 @@ class DataframeBuilderSuite extends AnyFunSuite {
     )
     val resultDs = DataframeBuilder.buildDataFrame(df, context)
     val expectedSchema = Array(
+      ("_platform_ingested_at", "TimestampType"),
       ("i__d", "IntegerType"),
       ("date", "TimestampType"),
       ("hour", "StringType"),
       ("content", "StringType"),
       ("ts", "DateType"),
-      ("test", "StringType"),
-      ("_platform_ingested_at", "TimestampType")
+      ("test", "StringType")
     )
     assert(resultDs.dtypes.sameElements(expectedSchema))
     assert(resultDs.select("test").take(1)(0).getString(0).equals("5"))
