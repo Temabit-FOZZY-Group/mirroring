@@ -16,10 +16,10 @@
 
 package mirroring.builders
 
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.{col, to_date, to_utc_timestamp, current_timestamp}
-import mirroring.services.SparkService
 import mirroring.Config
+import mirroring.services.SparkService.spark
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.{col, current_timestamp, to_date, to_utc_timestamp}
 
 object DataframeBuilder {
 
@@ -41,27 +41,42 @@ object DataframeBuilder {
       ctx: DataframeBuilderContext
   ): DataFrame = {
 
-    val spark = SparkService.spark
-    var df    = jdbcDF
-
+    var df = jdbcDF
     if (ctx.generateColumn) {
-      jdbcDF.createOrReplaceTempView(s"${ctx.targetTableName}_tempView")
-      val generatedDs = spark.sql(
+      df = addGeneratedColumn(df, ctx)
+    }
+    df = renameColumns(df)
+    df = castColumnTypes(df, ctx)
+    if (!ctx.disablePlatformIngestedAt) {
+      // Generate _platform_ingested_at column
+      df = df
+        .withColumn("_platform_ingested_at", current_timestamp())
+        .select("_platform_ingested_at", df.columns: _*)
+    }
+
+    df
+  }
+
+  private def addGeneratedColumn(jdbcDF: DataFrame, ctx: DataframeBuilderContext): DataFrame = {
+    jdbcDF.createOrReplaceTempView(s"${ctx.targetTableName}_tempView")
+    spark
+      .sql(
         s"select *, ${ctx.generatedColumnExp} as" +
           s" ${ctx.generatedColumnName} from ${ctx.targetTableName}_tempView"
       )
-      df = generatedDs.withColumn(
+      .withColumn(
         ctx.generatedColumnName,
         col(ctx.generatedColumnName).cast(ctx.generatedColumnType)
       )
-    }
+  }
 
-    df = renameColumns(df)
-    for (column <- df.columns) {
-      if (df.schema(column).dataType.simpleString.contains("date")) {
-        df = df.withColumn(column, col(column).cast("timestamp"))
-      } else if (df.schema(column).dataType.simpleString.contains("timestamp")) {
-        df = df.withColumn(column, to_utc_timestamp(col(column), ctx.timezone))
+  private def castColumnTypes(df: DataFrame, ctx: DataframeBuilderContext): DataFrame = {
+    var res = df
+    for (column <- res.columns) {
+      if (res.schema(column).dataType.simpleString.contains("date")) {
+        res = res.withColumn(column, col(column).cast("timestamp"))
+      } else if (res.schema(column).dataType.simpleString.contains("timestamp")) {
+        res = res.withColumn(column, to_utc_timestamp(col(column), ctx.timezone))
       }
     }
 
@@ -72,22 +87,16 @@ object DataframeBuilder {
       ) {
         var resultColumn = col(partitionColumn)
         if (
-          df.dtypes.exists(x =>
+          res.dtypes.exists(x =>
             x._1.equalsIgnoreCase(partitionColumn) &&
               x._2.equals(Config.SparkTimestampTypeCheck)
           )
         ) {
           resultColumn = to_date(col(partitionColumn))
         }
-        df = df.withColumn(partitionColumn, resultColumn)
+        res = res.withColumn(partitionColumn, resultColumn)
       }
     }
-
-    if (!ctx.disablePlatformIngestedAt) {
-      // Generate _platform_ingested_at column
-      df = df.withColumn("_platform_ingested_at", current_timestamp())
-    }
-
-    df
+    res
   }
 }
