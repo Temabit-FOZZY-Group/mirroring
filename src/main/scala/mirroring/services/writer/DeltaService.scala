@@ -37,7 +37,6 @@ class DeltaService(context: WriterContext) extends LogSupport {
     var writer = data.write
       .mode(context.mode)
       .format("delta")
-      .option("userMetadata", context.ctCurrentVersion)
 
     val replaceWhere = FilterBuilder.buildReplaceWherePredicate(
       ds = data,
@@ -74,5 +73,9 @@ class DeltaService(context: WriterContext) extends LogSupport {
       logger.error(s"Schema columns difference: ${columnsDiff.mkString(", ")}")
       throw new SchemaNotMatchException()
     }
+  }
+
+  def getUserMetadataJSON: String = {
+    ""
   }
 }

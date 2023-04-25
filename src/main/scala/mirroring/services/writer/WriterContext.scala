@@ -23,21 +23,17 @@ case class WriterContext(
     private val _lastPartitionCol: String,
     private val _mergeKeys: Array[String],
     private val _primaryKey: Array[String],
-    private val _whereClause: String
+    private val _whereClause: String,
+    var _ctCurrentVersion: Option[BigInt] = None
 ) {
 
-  private var _ctCurrentVersion: String = ""
-
-  def ctCurrentVersion: String = _ctCurrentVersion
-
-  def ctCurrentVersion_=(version: BigInt): Unit = _ctCurrentVersion = version.toString
-
-  val mode: String                 = _mode
-  val path: String                 = _pathToSave
-  val partitionCols: Array[String] = _partitionCols
-  val lastPartitionCol: String     = _lastPartitionCol
-  val mergeKeys: Array[String]     = _mergeKeys
-  val primaryKey: Array[String]    = _primaryKey
-  val whereClause: String          = _whereClause
+  val mode: String                  = _mode
+  val path: String                  = _pathToSave
+  val partitionCols: Array[String]  = _partitionCols
+  val lastPartitionCol: String      = _lastPartitionCol
+  val mergeKeys: Array[String]      = _mergeKeys
+  val primaryKey: Array[String]     = _primaryKey
+  val whereClause: String           = _whereClause
+  lazy val ctCurrentVersion: BigInt = _ctCurrentVersion.get
 
 }

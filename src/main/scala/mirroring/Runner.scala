@@ -57,6 +57,7 @@ object Runner extends LogSupport {
       SparkService.spark,
       config.pathToSave
     )
+    var userMetadataJSON: String = ""
 
     val jdbcDF: DataFrame =
       if (config.isChangeTrackingEnabled && isDeltaTableExists && config.CTChangesQuery.nonEmpty) {
@@ -83,14 +84,15 @@ object Runner extends LogSupport {
     var writerService: DeltaService = new DeltaService(writerContext)
     if (config.isChangeTrackingEnabled) {
       writerService = new ChangeTrackingService(writerContext)
+      userMetadataJSON = writerService.getUserMetadataJSON
     } else if (config.useMerge) {
       writerService = new MergeService(writerContext)
     }
     writerService.write(data = ds)
-    deltaPostProcessing(config, ds)
+    deltaPostProcessing(config, ds, userMetadataJSON)
   }
 
-  def deltaPostProcessing(config: Config, ds: DataFrame): Unit = {
+  def deltaPostProcessing(config: Config, ds: DataFrame, userMetadataJSON: String): Unit = {
     if (config.zorderby_col.nonEmpty) {
       val replaceWhere =
         FilterBuilder.buildReplaceWherePredicate(
@@ -104,7 +106,7 @@ object Runner extends LogSupport {
       )
     }
     if (config.hiveDb.nonEmpty) {
-      SqlService.run(config)
+      SqlService.run(config, userMetadataJSON)
     }
   }
 

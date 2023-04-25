@@ -194,13 +194,13 @@ case class Config(
 
   def getWriterContext: WriterContext = {
     WriterContext(
-      mode,
-      pathToSave,
-      partitionCols,
-      lastPartitionCol,
-      mergeKeys,
-      primary_key,
-      whereClause.toString
+      _mode = mode,
+      _pathToSave = pathToSave,
+      _partitionCols = partitionCols,
+      _lastPartitionCol = lastPartitionCol,
+      _mergeKeys = mergeKeys,
+      _primaryKey = primary_key,
+      _whereClause = whereClause.toString
     )
   }
 
