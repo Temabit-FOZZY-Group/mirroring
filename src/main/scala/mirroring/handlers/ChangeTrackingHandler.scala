@@ -79,10 +79,15 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
       .collect()(0)
       .getString(0)
 
-    val codec                              = MessageCodec.of[UserMetadata]
-    val userMetadata: Option[UserMetadata] = codec.unpackJson(userMetaJSON)
-    val ChangeTrackingVersion: BigInt      = userMetadata.get.ChangeTrackingVersion
-    ChangeTrackingVersion
+    val codec = MessageCodec.of[UserMetadata]
+    // TO DO: remove condition in v1.2.0. For backward comp. when "userMetadata" is a number
+    if (userMetaJSON.forall(Character.isDigit)) {
+      BigInt(userMetaJSON)
+    } else {
+      val userMetadata: Option[UserMetadata] = codec.unpackJson(userMetaJSON)
+      val ChangeTrackingVersion: BigInt      = userMetadata.get.ChangeTrackingVersion
+      ChangeTrackingVersion
+    }
   }
 
   private lazy val primaryKeyOnClause: String = {
