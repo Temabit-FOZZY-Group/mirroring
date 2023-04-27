@@ -78,8 +78,7 @@ object Runner extends LogSupport {
 
     logger.info(s"Number of incoming rows: ${jdbcDF.count}")
 
-    val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext).cache()
-    jdbcDF.unpersist()
+    val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext)
 
     var writerService: DeltaService = new DeltaService(writerContext)
     if (config.isChangeTrackingEnabled) {

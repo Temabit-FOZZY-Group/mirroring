@@ -58,7 +58,7 @@ object JdbcCTService extends LogSupport {
         r => JdbcRDD.resultSetToObjectArray(r)
       )
       logger.info("Building DataFrame from result set...")
-      JdbcBuilder.buildDataFrameFromRDD(myRDD, schema).cache()
+      JdbcBuilder.buildDataFrameFromRDD(myRDD, schema)
     } catch {
       case e: Exception =>
         logger.error(
@@ -101,7 +101,7 @@ object JdbcCTService extends LogSupport {
 
   def getChangeTrackingVersion(query: String, jdbcContext: JdbcContext): BigInt = {
     val jdbcService: JdbcService = new JdbcService(jdbcContext)
-    val jdbcDF: DataFrame        = jdbcService.loadData(query).cache()
+    val jdbcDF: DataFrame        = jdbcService.loadData(query)
 
     var version: BigInt = BigInt(0)
 

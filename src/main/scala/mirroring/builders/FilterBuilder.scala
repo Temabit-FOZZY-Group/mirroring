@@ -16,9 +16,10 @@
 
 package mirroring.builders
 
+import mirroring.Config
 import org.apache.spark.sql.{DataFrame, Encoders}
 import wvlet.log.LogSupport
-import mirroring.Config
+
 import scala.collection.mutable
 
 object FilterBuilder extends LogSupport {
@@ -88,7 +89,6 @@ object FilterBuilder extends LogSupport {
         .distinct
         .as[String](Encoders.STRING)
         .filter(x => !x.toLowerCase.contains("null"))
-        .cache()
 
       if (!values.isEmpty) {
         val replaceWhereAppend: String =
