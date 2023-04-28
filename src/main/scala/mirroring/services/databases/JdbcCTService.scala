@@ -38,13 +38,23 @@ object JdbcCTService extends LogSupport {
       jdbcContext.ctChangesQueryParams,
       jdbcContext
     )
+    val maxValueParams: Array[String] = Array(Long.MaxValue.toString, Long.MaxValue.toString)
+    val resultSet: ResultSet =
+      try {
+        logger.info("Executing procedure with Long.MaxValue to get schema...")
+        JdbcBuilder.buildJDBCResultSet(
+          cm.getConnection,
+          jdbcContext.ctChangesQuery,
+          maxValueParams
+        )
+      } catch {
+        case e: Exception =>
+          logger.error(
+            s"Error executing ${jdbcContext.ctChangesQuery} with params: ${maxValueParams.mkString(", ")}"
+          )
+          throw e
+      }
     try {
-      logger.info("Executing procedure with Long.MaxValue to get schema...")
-      val resultSet: ResultSet = JdbcBuilder.buildJDBCResultSet(
-        cm.getConnection,
-        jdbcContext.ctChangesQuery,
-        Array(Long.MaxValue.toString, Long.MaxValue.toString)
-      )
       val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
       logger.info(schema)
       logger.info("Executing procedure to create rdd...")
@@ -62,7 +72,7 @@ object JdbcCTService extends LogSupport {
     } catch {
       case e: Exception =>
         logger.error(
-          s"Error executing ${jdbcContext.ctChangesQuery} with params: ${params.mkString}"
+          s"Error executing ${jdbcContext.ctChangesQuery} with params: ${params.mkString(", ")}"
         )
         throw e
     }
