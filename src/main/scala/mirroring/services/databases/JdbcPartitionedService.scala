@@ -53,8 +53,7 @@ class JdbcPartitionedService(
       s"""(SELECT MIN(subq.${context.partitionColumn}) AS lowerBound FROM
          |$query) as query
       """.stripMargin
-
-    var ds = super[JdbcService].loadData(sql).cache()
+    var ds = super[JdbcService].loadData(sql)
     // Format timestamp to avoid Conversion failed when converting date and/or time from character string.
     if (ds.schema("lowerBound").dataType.simpleString == "timestamp") {
       ds = ds.withColumn(
@@ -80,7 +79,7 @@ class JdbcPartitionedService(
          |$query) as query
       """.stripMargin
 
-    var ds = super[JdbcService].loadData(sql).cache()
+    var ds = super[JdbcService].loadData(sql)
 
     // Format timestamp to avoid Conversion failed when converting date and/or time from character string.
     if (ds.schema("upperBound").dataType.simpleString == "timestamp") {
@@ -105,6 +104,6 @@ class JdbcPartitionedService(
     logger.info(s"Reading data with query: ${_query}")
     // setting query to use it in the lower/upper bounds calculations
     query = _query
-    dfReader.options(options).option("dbtable", _query).load().cache()
+    dfReader.options(options).option("dbtable", _query).load()
   }
 }

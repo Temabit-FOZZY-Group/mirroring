@@ -16,9 +16,9 @@
 
 package mirroring.services.databases
 
-import org.apache.spark.sql.{DataFrame, DataFrameReader, Encoders}
 import mirroring.DatatypeMapping
 import mirroring.services.SparkService.spark
+import org.apache.spark.sql.{DataFrame, DataFrameReader, Encoders}
 import wvlet.log.LogSupport
 
 class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
@@ -56,7 +56,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
   }
   def loadData(_query: String): DataFrame = {
     logger.info(s"Reading data with query: ${_query.linesIterator.mkString(" ").trim}")
-    dfReader.option("dbtable", _query).load().cache()
+    dfReader.option("dbtable", _query).load()
   }
 
   def dfReader: DataFrameReader = {
