@@ -17,13 +17,14 @@
 package mirroring.handlers
 
 import io.delta.tables.DeltaTable
-import mirroring.{Config, UserMetadata}
 import mirroring.builders._
 import mirroring.services.SparkService.spark
-import mirroring.services.databases.{JdbcContext, JdbcCTService}
+import mirroring.services.databases.{JdbcCTService, JdbcContext}
 import mirroring.services.writer.WriterContext
+import mirroring.{Config, UserMetadata}
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogSupport
+import org.apache.spark.sql.functions._
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
 
@@ -74,7 +75,9 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
   private lazy val ctDeltaVersion: BigInt = {
     val userMetaJSON = DeltaTable
       .forPath(spark, config.pathToSave)
-      .history(1)
+      .history()
+      .where("operation == 'MERGE'")
+      .orderBy(desc("timestamp"))
       .select("userMetadata")
       .collect()(0)
       .getString(0)
