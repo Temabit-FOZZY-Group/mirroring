@@ -17,13 +17,12 @@
 package mirroring.services.writer
 
 import io.delta.tables.DeltaTable
-import mirroring.UserMetadata
 import mirroring.builders.FilterBuilder
-import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import mirroring.services.SparkService.spark
+import mirroring.{Config, UserMetadata}
+import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogSupport
-import mirroring.Config
 
 class ChangeTrackingService(
     context: WriterContext
@@ -49,6 +48,12 @@ class ChangeTrackingService(
         "spark.databricks.delta.commitInfo.userMetadata",
         userMetadataJSON
       )
+      if (context.lastPartitionCol.nonEmpty) {
+        spark.conf.set(
+          "spark.databricks.delta.merge.repartitionBeforeWrite.enabled",
+          "true"
+        )
+      }
 
       val condition = FilterBuilder.buildMergeCondition(
         context.primaryKey,

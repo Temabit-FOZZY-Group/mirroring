@@ -17,11 +17,11 @@
 package mirroring.services.writer
 
 import io.delta.tables.DeltaTable
-import mirroring.builders.FilterBuilder
-import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
-import mirroring.services.SparkService.spark
-import wvlet.log.LogSupport
 import mirroring.Config
+import mirroring.builders.FilterBuilder
+import mirroring.services.SparkService.spark
+import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
+import wvlet.log.LogSupport
 
 class MergeService(context: WriterContext) extends DeltaService(context) with LogSupport {
 
@@ -31,6 +31,12 @@ class MergeService(context: WriterContext) extends DeltaService(context) with Lo
 
       verifySchemaMatch(data)
 
+      if (context.lastPartitionCol.nonEmpty) {
+        spark.conf.set(
+          "spark.databricks.delta.merge.repartitionBeforeWrite.enabled",
+          "true"
+        )
+      }
       DeltaTable
         .forPath(spark, context.path)
         .as(Config.TargetAlias)
