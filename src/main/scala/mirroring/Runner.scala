@@ -73,9 +73,7 @@ object Runner extends LogSupport {
         if (config.splitBy.nonEmpty) {
           jdbcService = new JdbcPartitionedService(jdbcContext)
         }
-        val resDf = jdbcService.loadData(query)
-        logger.info(s"Number of incoming rows: ${resDf.count}")
-        resDf
+        jdbcService.loadData(query)
       }
 
     val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext)
