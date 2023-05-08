@@ -56,7 +56,10 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
   }
   def loadData(_query: String): DataFrame = {
     logger.info(s"Reading data with query: ${_query.linesIterator.mkString(" ").trim}")
-    dfReader.option("dbtable", _query).load()
+    dfReader
+      .option("dbtable", _query)
+      .load()
+      .repartition(spark.conf.get("spark.sql.shuffle.partitions").toInt)
   }
 
   def dfReader: DataFrameReader = {
