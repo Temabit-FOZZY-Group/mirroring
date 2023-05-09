@@ -33,19 +33,19 @@ object JdbcCTService extends LogSupport {
         DriverManager.getConnection(jdbcContext.url)
       }
     }
-    val cm: ConnectionManager = new ConnectionManager
+    val connectionManager: ConnectionManager = new ConnectionManager
     val params: Array[String] = JdbcBuilder.buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
       jdbcContext
     )
-    val resultSet: ResultSet = getSchema(jdbcContext, cm)
+    val resultSet: ResultSet = getSchema(jdbcContext, connectionManager)
     try {
       val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
       logger.debug(schema)
       logger.info("Executing procedure to create rdd...")
       val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
         spark.sparkContext,
-        cm,
+        connectionManager,
         jdbcContext.ctChangesQuery,
         params(0).toLong,
         params(1).toLong,
