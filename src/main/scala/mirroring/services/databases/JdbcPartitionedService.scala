@@ -16,6 +16,7 @@
 
 package mirroring.services.databases
 
+import mirroring.services.SparkService.spark
 import org.apache.spark.sql.functions.{col, date_format, date_trunc}
 import org.apache.spark.sql.{DataFrame, Encoders}
 import wvlet.log.LogSupport
@@ -104,6 +105,10 @@ class JdbcPartitionedService(
     logger.info(s"Reading data with query: ${_query}")
     // setting query to use it in the lower/upper bounds calculations
     query = _query
-    dfReader.options(options).option("dbtable", _query).load()
+    dfReader
+      .options(options)
+      .option("dbtable", _query)
+      .load()
+      .repartition(spark.conf.get("spark.sql.shuffle.partitions").toInt)
   }
 }

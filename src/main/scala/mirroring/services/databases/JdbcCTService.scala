@@ -33,11 +33,40 @@ object JdbcCTService extends LogSupport {
         DriverManager.getConnection(jdbcContext.url)
       }
     }
-    val cm: ConnectionManager = new ConnectionManager
+    val connectionManager: ConnectionManager = new ConnectionManager
     val params: Array[String] = JdbcBuilder.buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
       jdbcContext
     )
+    val resultSet: ResultSet = getSchema(jdbcContext, connectionManager)
+    try {
+      val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
+      logger.debug(schema)
+      logger.info("Executing procedure to create rdd...")
+      val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
+        spark.sparkContext,
+        connectionManager,
+        jdbcContext.ctChangesQuery,
+        params(0).toLong,
+        params(1).toLong,
+        1,
+        r => JdbcRDD.resultSetToObjectArray(r)
+      )
+      logger.info("Building DataFrame from result set...")
+      JdbcBuilder.buildDataFrameFromRDD(
+        myRDD.repartition(spark.conf.get("spark.sql.shuffle.partitions").toInt),
+        schema
+      )
+    } catch {
+      case e: Exception =>
+        logger.error(
+          s"Error executing ${jdbcContext.ctChangesQuery} with params: ${params.mkString(", ")}"
+        )
+        throw e
+    }
+  }
+
+  private def getSchema(jdbcContext: JdbcContext, cm: JdbcRDD.ConnectionFactory): ResultSet = {
     val maxValueParams: Array[String] = Array(Long.MaxValue.toString, Long.MaxValue.toString)
     val resultSet: ResultSet =
       try {
@@ -54,28 +83,7 @@ object JdbcCTService extends LogSupport {
           )
           throw e
       }
-    try {
-      val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
-      logger.info(schema)
-      logger.info("Executing procedure to create rdd...")
-      val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
-        spark.sparkContext,
-        cm,
-        jdbcContext.ctChangesQuery,
-        params(0).toLong,
-        params(1).toLong,
-        1,
-        r => JdbcRDD.resultSetToObjectArray(r)
-      )
-      logger.info("Building DataFrame from result set...")
-      JdbcBuilder.buildDataFrameFromRDD(myRDD, schema)
-    } catch {
-      case e: Exception =>
-        logger.error(
-          s"Error executing ${jdbcContext.ctChangesQuery} with params: ${params.mkString(", ")}"
-        )
-        throw e
-    }
+    resultSet
   }
 
   /** Returns value from the first row, first column of the result set as BigInt.
