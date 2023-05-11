@@ -109,6 +109,5 @@ class JdbcPartitionedService(
       .options(options)
       .option("dbtable", _query)
       .load()
-      .repartition(spark.conf.get("spark.sql.shuffle.partitions").toInt)
   }
 }

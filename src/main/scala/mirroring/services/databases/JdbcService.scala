@@ -59,7 +59,6 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
     dfReader
       .option("dbtable", _query)
       .load()
-      .repartition(spark.conf.get("spark.sql.shuffle.partitions").toInt)
   }
 
   def dfReader: DataFrameReader = {
