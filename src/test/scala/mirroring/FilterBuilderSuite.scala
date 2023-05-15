@@ -132,8 +132,16 @@ class FilterBuilderSuite extends AnyFunSuite {
   }
 
   test("buildMergeCondition should return String with condition") {
+    val args: Array[String] = Array(
+      "path_to_save==dummy",
+      "jdbcUrl==dummy;user=hhh;password=ll",
+      "tab==dummy",
+      "change_tracking==True",
+      "primary_key==id,[FilId], id2"
+    )
+    val config = ConfigBuilder.build(ConfigBuilder.parse(args))
     val result = FilterBuilder.buildMergeCondition(
-      primaryKey = Array("id", "FilId", "id2"),
+      primaryKey = config.primary_key,
       sourceColPrefix = "SYS_CHANGE_PK_",
       ds = null
     )
