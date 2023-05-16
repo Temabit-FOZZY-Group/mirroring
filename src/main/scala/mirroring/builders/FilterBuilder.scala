@@ -89,6 +89,7 @@ object FilterBuilder extends LogSupport {
         .distinct
         .as[String](Encoders.STRING)
         .filter(x => !x.toLowerCase.contains("null"))
+        .cache()
 
       if (!values.isEmpty) {
         val replaceWhereAppend: String =
