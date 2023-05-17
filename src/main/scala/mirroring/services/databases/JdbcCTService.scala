@@ -129,8 +129,9 @@ object JdbcCTService extends LogSupport {
         .as[Long]
         .first()
     } catch {
-      case e: java.util.NoSuchElementException =>
-        logger.info(s"Cannot retrieve change tracking version using: ${query}, using 0")
+      case e: java.lang.NullPointerException =>
+        logger.error(s"Change tracking is not enabled on queried table: ${query}")
+        throw e
     }
     version
   }
