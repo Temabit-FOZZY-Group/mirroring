@@ -22,7 +22,6 @@ object SparkService {
 
   val spark: SparkSession = SparkSession
     .builder()
-    .appName("DataMirroring")
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
     .config(
       "spark.sql.catalog.spark_catalog",
