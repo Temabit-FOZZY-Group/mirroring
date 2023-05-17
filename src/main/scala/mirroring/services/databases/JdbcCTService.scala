@@ -20,6 +20,7 @@ import mirroring.services.SparkService.spark
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.delta.implicits.longEncoder
 import org.apache.spark.sql.types.StructType
 import wvlet.log.LogSupport
 
@@ -118,17 +119,19 @@ object JdbcCTService extends LogSupport {
   }
 
   def getChangeTrackingVersion(query: String, jdbcContext: JdbcContext): BigInt = {
-    val jdbcService: JdbcService = new JdbcService(jdbcContext)
-    val jdbcDF: DataFrame        = jdbcService.loadData(query)
-
     var version: BigInt = BigInt(0)
-
-    if (!jdbcDF.isEmpty) {
-      version = BigInt(
-        jdbcDF
-          .collect()(0)
-          .getLong(0)
-      )
+    try {
+      version = spark.read
+        .format("jdbc")
+        .option("url", jdbcContext.url)
+        .option("dbtable", query)
+        .load()
+        .as[Long]
+        .first()
+    } catch {
+      case e: java.lang.NullPointerException =>
+        logger.error(s"Change tracking is not enabled on queried table: ${query}")
+        throw e
     }
     version
   }
