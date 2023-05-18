@@ -17,8 +17,8 @@
 package mirroring.services.databases
 
 import mirroring.services.SparkService.spark
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, date_format, date_trunc}
-import org.apache.spark.sql.{DataFrame, Encoders}
 import wvlet.log.LogSupport
 
 import scala.collection.mutable
@@ -43,62 +43,43 @@ class JdbcPartitionedService(
     options
   }
 
+  private lazy val lowerBound: String = getBounds().first().getString(1)
+
+  private lazy val upperBound: String = getBounds().first().getString(0)
+
   private var _query = ""
 
   def query: String = _query
 
   def query_=(in: String): Unit = _query = in
 
-  private lazy val lowerBound: String = {
+  private def getBounds(): DataFrame = {
     val sql =
-      s"""(SELECT MIN(subq.${context.partitionColumn}) AS lowerBound FROM
-         |$query) as query
-      """.stripMargin
-    var ds = super[JdbcService].loadData(sql)
-    // Format timestamp to avoid Conversion failed when converting date and/or time from character string.
-    if (ds.schema("lowerBound").dataType.simpleString == "timestamp") {
-      ds = ds.withColumn(
-        "lowerBound",
-        date_format(
-          date_trunc("day", col("lowerBound")),
-          "yyyy-MM-dd HH:mm:ss.SSS"
-        )
-      )
-    }
-
-    try {
-      ds.as[String](Encoders.STRING).first
-    } catch {
-      case e: java.lang.NullPointerException =>
-        ""
-    }
-  }
-
-  private lazy val upperBound: String = {
-    val sql =
-      s"""(SELECT MAX(subq.${context.partitionColumn}) AS upperBound FROM
+      s"""(SELECT MAX(subq.${context.partitionColumn}) AS MAX,
+         |MIN(subq.${context.partitionColumn}) AS MIN FROM
          |$query) as query
       """.stripMargin
 
-    var ds = super[JdbcService].loadData(sql)
+    var ds = spark.read
+      .format("jdbc")
+      .option("url", context.url)
+      .option("dbtable", sql)
+      .load()
 
     // Format timestamp to avoid Conversion failed when converting date and/or time from character string.
-    if (ds.schema("upperBound").dataType.simpleString == "timestamp") {
-      ds = ds.withColumn(
-        "upperBound",
-        date_format(
-          date_trunc("day", col("upperBound")),
-          "yyyy-MM-dd HH:mm:ss.SSS"
+    ds.columns.foreach(side => {
+      if (ds.schema(side).dataType.simpleString == "timestamp") {
+        ds = ds.withColumn(
+          side,
+          date_format(
+            date_trunc("day", col(side)),
+            "yyyy-MM-dd HH:mm:ss.SSS"
+          )
         )
-      )
-    }
-
-    try {
-      ds.as[String](Encoders.STRING).first
-    } catch {
-      case e: java.lang.NullPointerException =>
-        ""
-    }
+      }
+      ds = ds.withColumn(side, col(side).cast("string"))
+    })
+    ds
   }
 
   override def loadData(_query: String): DataFrame = {
