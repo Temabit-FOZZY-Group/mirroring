@@ -16,12 +16,13 @@
 
 package mirroring
 
-import java.text.SimpleDateFormat
-import java.util.Calendar
 import mirroring.services.SparkService
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogFormatter.appendStackTrace
 import wvlet.log.{LogFormatter, LogLevel, LogRecord, Logger}
+
+import java.text.SimpleDateFormat
+import java.util.Calendar
 
 case class Record(
     timestamp: String,
@@ -55,7 +56,7 @@ object FlowLogger {
         appendStackTrace(jsonMessage, logRecord)
       }
     }
-    Logger.setDefaultLogLevel(LogLevel.apply(logLvl))
+    Logger("mirroring").setLogLevel(LogLevel.apply(logLvl))
     Logger.setDefaultFormatter(CustomLogFormatter)
   }
 
