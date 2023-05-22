@@ -16,35 +16,33 @@
 
 package mirroring.services.databases
 
-import mirroring.DatatypeMapping
 import mirroring.services.SparkService.spark
-import org.apache.spark.sql.{DataFrame, DataFrameReader, Encoders}
+import org.apache.spark.sql.delta.implicits.stringEncoder
+import org.apache.spark.sql.{DataFrame, DataFrameReader}
 import wvlet.log.LogSupport
 
 class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
 
   protected lazy val customSchema: String = {
-    val sql =
-      s"(select column_name, data_type from INFORMATION_SCHEMA.COLUMNS with (nolock) where " +
-        s"TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}') as subq"
-
-    val sourceSchema =
-      spark.read.format("jdbc").option("url", jdbcContext.url).option("dbtable", sql).load()
-
     // create custom schema to avoid transferring DATE as STRING
     // viz https://jtds.sourceforge.net/typemap.html
+    val sql =
+      s"""(select concat(column_name, ' ', data_type) as res from INFORMATION_SCHEMA.COLUMNS with (nolock) where
+         |TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}'
+         |and DATA_TYPE = 'date') as subq
+         |""".stripMargin
+
+    val sourceSchema =
+      spark.read
+        .format("jdbc")
+        .option("url", jdbcContext.url)
+        .option("dbtable", sql)
+        .load()
+        .as[String]
+
     try {
       val customSchema = sourceSchema
-        .map(row => {
-          if (DatatypeMapping.contains(row.getString(1))) {
-            f"${row.getString(0)} ${DatatypeMapping.getDatatype(row.getString(1))}"
-          } else {
-            ""
-          }
-        })(Encoders.STRING)
-        .filter(row => row.nonEmpty)
         .reduce(_ + ", " + _)
-
       logger.info(s"Reading data with customSchema: $customSchema")
       customSchema
     } catch {
