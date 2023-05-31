@@ -74,7 +74,8 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
   private lazy val ctDeltaVersion: BigInt = {
     val userMetaJSON = DeltaTable
       .forPath(spark, config.pathToSave)
-      .history(1)
+      .history()
+      .where("operation <> 'OPTIMIZE'")
       .select("userMetadata")
       .collect()(0)
       .getString(0)
