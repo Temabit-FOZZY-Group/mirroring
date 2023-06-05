@@ -16,6 +16,7 @@
 
 package mirroring.services.databases
 
+import mirroring.services.SparkContextTrait
 import mirroring.services.SparkService.spark
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, date_format, date_trunc}
@@ -23,10 +24,8 @@ import wvlet.log.LogSupport
 
 import scala.collection.mutable
 
-class JdbcPartitionedService(
-    context: JdbcContext
-) extends JdbcService(context)
-    with LogSupport {
+class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) with LogSupport {
+  this: SparkContextTrait =>
 
   private lazy val options: mutable.Map[String, String] = {
     var options = mutable.Map[String, String]()
@@ -34,9 +33,9 @@ class JdbcPartitionedService(
     if (lowerBound != null && lowerBound.nonEmpty) {
       options = mutable.Map[String, String](
         "partitionColumn" -> context.partitionColumn,
-        "numPartitions"   -> context.numPartitions,
-        "lowerBound"      -> lowerBound,
-        "upperBound"      -> upperBound
+        "numPartitions" -> context.numPartitions,
+        "lowerBound" -> lowerBound,
+        "upperBound" -> upperBound
       )
     }
     logger.info(s"Reading data with options: ${options.mkString(", ")}")
@@ -55,40 +54,47 @@ class JdbcPartitionedService(
 
   private def getBounds(): DataFrame = {
     val sql =
-      s"""(SELECT MAX(subq.${context.partitionColumn}) AS MAX,
-         |MIN(subq.${context.partitionColumn}) AS MIN FROM
-         |$query) as query
+      s"""(SELECT
+         |MAX(subq.${context.partitionColumn}) AS MAX,
+         |MIN(subq.${context.partitionColumn}) AS MIN
+         |FROM $query) as query
       """.stripMargin
 
-    var ds = spark.read
+    var ds: DataFrame = spark.read
       .format("jdbc")
       .option("url", context.url)
       .option("dbtable", sql)
       .load()
 
     // Format timestamp to avoid Conversion failed when converting date and/or time from character string.
-    ds.columns.foreach(side => {
-      if (ds.schema(side).dataType.simpleString == "timestamp") {
-        ds = ds.withColumn(
-          side,
-          date_format(
-            date_trunc("day", col(side)),
-            "yyyy-MM-dd HH:mm:ss.SSS"
-          )
-        )
+    ds.columns
+      .foreach { columnName =>
+        ds = addDayPrecisionTimestamp(ds, columnName)
+          .withColumn(columnName, col(columnName).cast("string"))
       }
-      ds = ds.withColumn(side, col(side).cast("string"))
-    })
     ds
   }
 
-  override def loadData(_query: String): DataFrame = {
-    logger.info(s"Reading data with query: ${_query}")
+  override def loadData(query: String): DataFrame = {
+    logger.info(s"Reading data with query: $query")
     // setting query to use it in the lower/upper bounds calculations
-    query = _query
-    dfReader
+    getDataFrameReader
       .options(options)
-      .option("dbtable", _query)
+      .option("dbtable", query)
       .load()
+  }
+
+  def addDayPrecisionTimestamp(ds: DataFrame, columnName: String): DataFrame = {
+    if (columnHasTimestampType(ds, columnName)) {
+      ds.withColumn(columnName, date_format(
+        date_trunc("day", col(columnName)), "yyyy-MM-dd HH:mm:ss.SSS"
+      ))
+    } else {
+      ds
+    }
+  }
+
+  private def columnHasTimestampType(ds: DataFrame, columnName: String): Boolean = {
+    ds.schema(columnName).dataType.simpleString == "timestamp"
   }
 }

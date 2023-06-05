@@ -72,7 +72,7 @@ object JdbcCTService extends LogSupport {
     val resultSet: ResultSet =
       try {
         logger.info("Executing procedure with Long.MaxValue to get schema...")
-        JdbcBuilder.buildJDBCResultSet(
+        JdbcBuilder.getResultSet(
           cm.getConnection,
           jdbcContext.ctChangesQuery,
           maxValueParams
@@ -102,7 +102,7 @@ object JdbcCTService extends LogSupport {
         parameters,
         jdbcContext
       )
-      val rs = JdbcBuilder.buildJDBCResultSet(
+      val rs = JdbcBuilder.getResultSet(
         connection,
         query,
         params
@@ -130,7 +130,7 @@ object JdbcCTService extends LogSupport {
         .first()
     } catch {
       case e: java.lang.NullPointerException =>
-        logger.error(s"Change tracking is not enabled on queried table: ${query}")
+        logger.error(s"Change tracking is not enabled on queried table: $query")
         throw e
     }
     version

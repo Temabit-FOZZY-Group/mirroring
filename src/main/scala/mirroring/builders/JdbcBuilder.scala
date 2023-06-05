@@ -24,59 +24,58 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Row}
 import wvlet.log.LogSupport
 
-import java.sql.{CallableStatement, Connection, ResultSet}
+import java.sql.{CallableStatement, Connection, ResultSet, ResultSetMetaData}
 
 object JdbcBuilder extends LogSupport {
 
-  def buildJDBCResultSet(
-      connection: Connection,
-      query: String,
-      parameters: Array[String] = Array[String]()
-  ): ResultSet = {
-    val cStmt: CallableStatement =
-      connection.prepareCall(query)
-    for ((parameter, i) <- parameters.zipWithIndex) {
-      cStmt.setString(i + 1, parameter)
+  def getResultSet(connection: Connection, query: String, parameters: Array[String] = Array()): ResultSet = {
+
+    val statement: CallableStatement = connection.prepareCall(query)
+
+    parameters.zipWithIndex.foreach {
+      case (parameter, i) => statement.setString(i + 1, parameter)
     }
-    cStmt.execute()
-    val rs: ResultSet = cStmt.getResultSet
+    statement.execute()
+
+    val rs: ResultSet = statement.getResultSet
     rs
   }
 
   def buildStructFromResultSet(rs: ResultSet): StructType = {
-    val md          = rs.getMetaData
+
+    val md = rs.getMetaData
     val columnCount = md.getColumnCount
-    val structFieldsList: List[StructField] = (1 to columnCount).map { i =>
-      StructField(
-        md.getColumnName(i),
-        fromJavaSQLType(md.getColumnType(i), md.getPrecision(i), md.getScale(i)),
-        md.isNullable(i) == 1
-      )
-    }.toList
+
+    val structFieldsList: List[StructField] =
+      (1 to columnCount)
+      .map(columnNumber => getStructField(md, columnNumber))
+      .toList
+
     StructType(structFieldsList)
   }
 
-  def buildCTQueryParams(
-      CTChangesQueryParams: Array[String],
-      jdbcContext: JdbcContext
-  ): Array[String] = {
-    var params: Array[String] = Array()
-    for (param <- CTChangesQueryParams) {
-      param match {
-        case "defaultSQLTable" =>
-          logger.info("Change Tracking default param used: SQLTable")
-          params :+= buildSQLObjectName(jdbcContext.schema, jdbcContext.table)
-        case "queryCTLastVersion" =>
-          logger.info("Change Tracking default param used: querying last version")
-          params :+= jdbcContext.ctLastVersion.toString
-        case "queryCTCurrentVersion" =>
-          logger.info("Change Tracking default param used: querying current version")
-          params :+= jdbcContext.ctCurrentVersion.toString
-        case _ =>
-          params :+= param
-      }
+  private def getStructField(md: ResultSetMetaData, columnNumber: Int) = {
+    StructField(
+      md.getColumnName(columnNumber),
+      fromJavaSQLType(md.getColumnType(columnNumber), md.getPrecision(columnNumber), md.getScale(columnNumber)),
+      md.isNullable(columnNumber) == 1
+    )
+  }
+
+  def buildCTQueryParams(CTChangesQueryParams: Array[String], jdbcContext: JdbcContext): Array[String] = {
+
+    CTChangesQueryParams.map {
+      case "defaultSQLTable" =>
+        logger.info("Change Tracking default param used: SQLTable")
+        buildSQLObjectName(jdbcContext.schema, jdbcContext.table)
+      case "queryCTLastVersion" =>
+        logger.info("Change Tracking default param used: querying last version")
+        jdbcContext.ctLastVersion.toString
+      case "queryCTCurrentVersion" =>
+        logger.info("Change Tracking default param used: querying current version")
+        jdbcContext.ctCurrentVersion.toString
+      case otherParam => otherParam
     }
-    params
   }
 
   def buildDataFrameFromRDD(rs: JavaRDD[Array[Object]], schema: StructType): DataFrame = {
@@ -84,17 +83,17 @@ object JdbcBuilder extends LogSupport {
   }
 
   private def fromJavaSQLType(colType: Int, precision: Int, scale: Int): DataType = colType match {
-    case java.sql.Types.BOOLEAN | java.sql.Types.BIT                               => BooleanType
+    case java.sql.Types.BOOLEAN | java.sql.Types.BIT => BooleanType
     case java.sql.Types.TINYINT | java.sql.Types.SMALLINT | java.sql.Types.INTEGER => IntegerType
-    case java.sql.Types.BIGINT                                                     => LongType
-    case java.sql.Types.NUMERIC | java.sql.Types.DECIMAL                           => DecimalType(precision, scale)
-    case java.sql.Types.FLOAT | java.sql.Types.REAL                                => FloatType
-    case java.sql.Types.DOUBLE                                                     => DoubleType
+    case java.sql.Types.BIGINT => LongType
+    case java.sql.Types.NUMERIC | java.sql.Types.DECIMAL => DecimalType(precision, scale)
+    case java.sql.Types.FLOAT | java.sql.Types.REAL => FloatType
+    case java.sql.Types.DOUBLE => DoubleType
     case java.sql.Types.BINARY | java.sql.Types.VARBINARY | java.sql.Types.LONGVARBINARY =>
       BinaryType
-    case java.sql.Types.DATE      => DateType
+    case java.sql.Types.DATE => DateType
     case java.sql.Types.TIMESTAMP => TimestampType
-    case _                        => StringType
+    case _ => StringType
   }
 
 }
