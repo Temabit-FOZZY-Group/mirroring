@@ -20,7 +20,8 @@ import org.apache.spark.sql.SparkSession
 trait SparkContextTrait {
 
   def getSession: SparkSession = {
-    SparkSession.builder()
+    SparkSession
+      .builder()
       .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
       .config(
         "spark.sql.catalog.spark_catalog",

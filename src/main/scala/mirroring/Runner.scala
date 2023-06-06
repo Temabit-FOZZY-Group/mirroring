@@ -20,7 +20,12 @@ import io.delta.tables.DeltaTable
 import org.apache.spark.sql.DataFrame
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import mirroring.handlers.ChangeTrackingHandler
-import mirroring.services.databases.{JdbcCTService, JdbcContext, JdbcPartitionedService, JdbcService}
+import mirroring.services.databases.{
+  JdbcCTService,
+  JdbcContext,
+  JdbcPartitionedService,
+  JdbcService
+}
 import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
 import mirroring.services.{DeltaTableService, SparkContextTrait, SparkService, SqlService}
 import wvlet.log.LogSupport
@@ -36,10 +41,8 @@ object Runner extends LogSupport {
   def setSparkContext(config: Config): Unit = {
     val spark = SparkService.spark
     logger.info(
-      s"""Creating spark session with configurations: ${
-        spark.conf.getAll
-          .mkString(", ")
-      }"""
+      s"""Creating spark session with configurations: ${spark.conf.getAll
+        .mkString(", ")}"""
     )
     spark.sparkContext.setLogLevel(config.logSparkLvl)
     spark.conf.set("spark.sql.session.timeZone", config.timezone)
@@ -53,7 +56,7 @@ object Runner extends LogSupport {
     setSparkContext(config)
 
     val writerContext: WriterContext = config.getWriterContext
-    val jdbcDF: DataFrame = loadDataFromSqlSource(config, writerContext)
+    val jdbcDF: DataFrame            = loadDataFromSqlSource(config, writerContext)
 
     val sqlSourceData = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext)
 
@@ -67,7 +70,8 @@ object Runner extends LogSupport {
     val jdbcContext = config.getJdbcContext
 
     lazy val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(config)
-    lazy val isDeltaTableExists: Boolean = DeltaTable.isDeltaTable(SparkService.spark, config.pathToSave)
+    lazy val isDeltaTableExists: Boolean =
+      DeltaTable.isDeltaTable(SparkService.spark, config.pathToSave)
 
     def getQuery: String = {
       if (config.isChangeTrackingEnabled) {

@@ -28,12 +28,16 @@ import java.sql.{CallableStatement, Connection, ResultSet, ResultSetMetaData}
 
 object JdbcBuilder extends LogSupport {
 
-  def getResultSet(connection: Connection, query: String, parameters: Array[String] = Array()): ResultSet = {
+  def getResultSet(
+      connection: Connection,
+      query: String,
+      parameters: Array[String] = Array()
+  ): ResultSet = {
 
     val statement: CallableStatement = connection.prepareCall(query)
 
-    parameters.zipWithIndex.foreach {
-      case (parameter, i) => statement.setString(i + 1, parameter)
+    parameters.zipWithIndex.foreach { case (parameter, i) =>
+      statement.setString(i + 1, parameter)
     }
     statement.execute()
 
@@ -43,13 +47,13 @@ object JdbcBuilder extends LogSupport {
 
   def buildStructFromResultSet(rs: ResultSet): StructType = {
 
-    val md = rs.getMetaData
+    val md          = rs.getMetaData
     val columnCount = md.getColumnCount
 
     val structFieldsList: List[StructField] =
       (1 to columnCount)
-      .map(columnNumber => getStructField(md, columnNumber))
-      .toList
+        .map(columnNumber => getStructField(md, columnNumber))
+        .toList
 
     StructType(structFieldsList)
   }
@@ -57,12 +61,19 @@ object JdbcBuilder extends LogSupport {
   private def getStructField(md: ResultSetMetaData, columnNumber: Int) = {
     StructField(
       md.getColumnName(columnNumber),
-      fromJavaSQLType(md.getColumnType(columnNumber), md.getPrecision(columnNumber), md.getScale(columnNumber)),
+      fromJavaSQLType(
+        md.getColumnType(columnNumber),
+        md.getPrecision(columnNumber),
+        md.getScale(columnNumber)
+      ),
       md.isNullable(columnNumber) == 1
     )
   }
 
-  def buildCTQueryParams(CTChangesQueryParams: Array[String], jdbcContext: JdbcContext): Array[String] = {
+  def buildCTQueryParams(
+      CTChangesQueryParams: Array[String],
+      jdbcContext: JdbcContext
+  ): Array[String] = {
 
     CTChangesQueryParams.map {
       case "defaultSQLTable" =>
@@ -83,17 +94,17 @@ object JdbcBuilder extends LogSupport {
   }
 
   private def fromJavaSQLType(colType: Int, precision: Int, scale: Int): DataType = colType match {
-    case java.sql.Types.BOOLEAN | java.sql.Types.BIT => BooleanType
+    case java.sql.Types.BOOLEAN | java.sql.Types.BIT                               => BooleanType
     case java.sql.Types.TINYINT | java.sql.Types.SMALLINT | java.sql.Types.INTEGER => IntegerType
-    case java.sql.Types.BIGINT => LongType
-    case java.sql.Types.NUMERIC | java.sql.Types.DECIMAL => DecimalType(precision, scale)
-    case java.sql.Types.FLOAT | java.sql.Types.REAL => FloatType
-    case java.sql.Types.DOUBLE => DoubleType
+    case java.sql.Types.BIGINT                                                     => LongType
+    case java.sql.Types.NUMERIC | java.sql.Types.DECIMAL                           => DecimalType(precision, scale)
+    case java.sql.Types.FLOAT | java.sql.Types.REAL                                => FloatType
+    case java.sql.Types.DOUBLE                                                     => DoubleType
     case java.sql.Types.BINARY | java.sql.Types.VARBINARY | java.sql.Types.LONGVARBINARY =>
       BinaryType
-    case java.sql.Types.DATE => DateType
+    case java.sql.Types.DATE      => DateType
     case java.sql.Types.TIMESTAMP => TimestampType
-    case _ => StringType
+    case _                        => StringType
   }
 
 }

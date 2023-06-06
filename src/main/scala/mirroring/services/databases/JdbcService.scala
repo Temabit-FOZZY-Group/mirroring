@@ -35,8 +35,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
   }
 
   def getDataFrameReader: DataFrameReader = {
-    getSession
-      .read
+    getSession.read
       .format("jdbc")
       .option("url", jdbcContext.url)
       .option("customSchema", customSchema)
@@ -46,7 +45,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
     // create custom schema to avoid transferring DATE as STRING
     // viz https://jtds.sourceforge.net/typemap.htmlØ
     val getDateColumnsQuery =
-    s"""(select concat(column_name, ' ', data_type) as res from INFORMATION_SCHEMA.COLUMNS with (nolock) where
+      s"""(select concat(column_name, ' ', data_type) as res from INFORMATION_SCHEMA.COLUMNS with (nolock) where
        |TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}'
        |and DATA_TYPE IN ('date', 'datetime2')) as subq
        |""".stripMargin
@@ -59,15 +58,14 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
       customSchema.replaceAll("datetime2", "timestamp")
     } catch {
       case e: java.lang.UnsupportedOperationException
-        if e.getMessage.contains("empty collection") =>
+          if e.getMessage.contains("empty collection") =>
         logger.info(s"No custom schema will be used")
         ""
     }
   }
 
   private def executeQuery(sql: String): DataFrame = {
-    getSession
-      .read
+    getSession.read
       .format("jdbc")
       .option("url", jdbcContext.url)
       .option("dbtable", sql)

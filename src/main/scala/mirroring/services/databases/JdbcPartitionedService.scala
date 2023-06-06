@@ -33,9 +33,9 @@ class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) 
     if (lowerBound != null && lowerBound.nonEmpty) {
       options = mutable.Map[String, String](
         "partitionColumn" -> context.partitionColumn,
-        "numPartitions" -> context.numPartitions,
-        "lowerBound" -> lowerBound,
-        "upperBound" -> upperBound
+        "numPartitions"   -> context.numPartitions,
+        "lowerBound"      -> lowerBound,
+        "upperBound"      -> upperBound
       )
     }
     logger.info(s"Reading data with options: ${options.mkString(", ")}")
@@ -86,9 +86,13 @@ class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) 
 
   def addDayPrecisionTimestamp(ds: DataFrame, columnName: String): DataFrame = {
     if (columnHasTimestampType(ds, columnName)) {
-      ds.withColumn(columnName, date_format(
-        date_trunc("day", col(columnName)), "yyyy-MM-dd HH:mm:ss.SSS"
-      ))
+      ds.withColumn(
+        columnName,
+        date_format(
+          date_trunc("day", col(columnName)),
+          "yyyy-MM-dd HH:mm:ss.SSS"
+        )
+      )
     } else {
       ds
     }
