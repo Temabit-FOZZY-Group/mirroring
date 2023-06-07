@@ -43,12 +43,10 @@ object SqlService extends LogSupport with SparkContextTrait {
       logger.info(s"Running SQL: ${createTableSQL.linesIterator.mkString(" ").trim}")
       spark.sql(createTableSQL)
 
-      val logRetentionDuration = getLogRetentionDuration(config, spark)
+      val logRetentionDuration         = getLogRetentionDuration(config, spark)
       val deletedFileRetentionDuration = getDeletedFileLogRetention(config, spark)
 
-      if (
-        logRetentionConfigIsChanged(config, logRetentionDuration, deletedFileRetentionDuration)
-      ) {
+      if (logRetentionConfigIsChanged(config, logRetentionDuration, deletedFileRetentionDuration)) {
         val alterTableSQL = SqlBuilder.buildAlterTableSQL(
           config.hiveDb,
           config.targetTableName,

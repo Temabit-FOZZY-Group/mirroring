@@ -25,7 +25,6 @@ import wvlet.log.LogSupport
 class DeltaService(context: WriterContext) extends LogSupport {
   this: SparkContextTrait =>
 
-
   def write(data: DataFrame): Unit = {
     if (DeltaTable.isDeltaTable(this.getSparkSession, context.path)) {
       verifySchemaMatch(data)
