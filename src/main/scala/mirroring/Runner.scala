@@ -17,7 +17,6 @@
 package mirroring
 
 import io.delta.tables.DeltaTable
-import org.apache.spark.sql.DataFrame
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import mirroring.config.{Config, FlowLogger, LoggerConfig}
 import mirroring.handlers.ChangeTrackingHandler
@@ -29,6 +28,7 @@ import mirroring.services.databases.{
 }
 import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
 import mirroring.services.{DeltaTableService, SparkContextTrait, SqlService}
+import org.apache.spark.sql.DataFrame
 import wvlet.log.LogSupport
 
 object Runner extends LogSupport with SparkContextTrait {

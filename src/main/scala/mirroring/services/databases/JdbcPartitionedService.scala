@@ -70,12 +70,13 @@ class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) 
     ds
   }
 
-  override def loadData(query: String): DataFrame = {
-    logger.info(s"Reading data with query: $query")
+  override def loadData(_query: String): DataFrame = {
+    logger.info(s"Reading data with query: ${_query}")
     // setting query to use it in the lower/upper bounds calculations
+    query = _query
     getDataFrameReader
       .options(options)
-      .option("dbtable", query)
+      .option("dbtable", _query)
       .load()
   }
 
