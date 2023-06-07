@@ -17,6 +17,7 @@
 package mirroring
 
 import mirroring.builders.{DataframeBuilder, DataframeBuilderContext}
+import mirroring.config.Config
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.col
 import org.scalatest.funsuite.AnyFunSuite

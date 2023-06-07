@@ -16,12 +16,14 @@
 
 package mirroring.builders
 
-import mirroring.Config
-import mirroring.services.SparkService.spark
+import mirroring.Runner.getSparkSession
+import mirroring.config.Config
+import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, current_timestamp, to_date, to_utc_timestamp}
 
 object DataframeBuilder {
+  this: SparkContextTrait =>
 
   def renameColumns(jdbcDF: DataFrame): DataFrame = {
     jdbcDF.columns.foldLeft(jdbcDF)((curr, n) =>
@@ -59,7 +61,7 @@ object DataframeBuilder {
 
   private def addGeneratedColumn(jdbcDF: DataFrame, ctx: DataframeBuilderContext): DataFrame = {
     jdbcDF.createOrReplaceTempView(s"${ctx.targetTableName}_tempView")
-    spark
+    getSparkSession
       .sql(
         s"select *, ${ctx.generatedColumnExp} as" +
           s" ${ctx.generatedColumnName} from ${ctx.targetTableName}_tempView"

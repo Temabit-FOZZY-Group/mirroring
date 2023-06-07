@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package mirroring
+package mirroring.config
 
-import mirroring.services.SparkService
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogFormatter.appendStackTrace
 import wvlet.log.{LogFormatter, LogLevel, LogRecord, Logger}
@@ -24,39 +23,28 @@ import wvlet.log.{LogFormatter, LogLevel, LogRecord, Logger}
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
-case class Record(
-    timestamp: String,
-    level: String,
-    sparkApplicationId: String,
-    sparkApplicationAttempt: String,
-    mirrorTaskName: String,
-    loggerName: String,
-    message: String
-)
-
 object FlowLogger {
 
-  def init(schema: String, tab: String, logLvl: String): Unit = {
+  def init(loggerConfig: LoggerConfig): Unit = {
     Logger.init
     object CustomLogFormatter extends LogFormatter {
       val datetimeFormatter = new SimpleDateFormat("yy/MM/dd hh:mm:ss")
       override def formatLog(logRecord: LogRecord): String = {
-        val spark = SparkService.spark
-        val record = Record(
+        val record = LoggerRecord(
           timestamp = datetimeFormatter.format(getCurrentTimestamp),
           level = logRecord.level.toString,
-          sparkApplicationId = if (spark != null) spark.sparkContext.applicationId else "null",
-          sparkApplicationAttempt = spark.sparkContext.applicationAttemptId.getOrElse("1"),
-          mirrorTaskName = s"mirroring_${schema}__$tab",
+          sparkApplicationId = loggerConfig.applicationId,
+          sparkApplicationAttempt = loggerConfig.applicationAttemptId,
+          mirrorTaskName = s"mirroring_${loggerConfig.schema}__${loggerConfig.table}",
           loggerName = logRecord.getLoggerName,
           message = logRecord.getMessage
         )
-        val codec       = MessageCodec.of[Record]
+        val codec       = MessageCodec.of[LoggerRecord]
         val jsonMessage = codec.toJson(record)
         appendStackTrace(jsonMessage, logRecord)
       }
     }
-    Logger("mirroring").setLogLevel(LogLevel.apply(logLvl))
+    Logger("mirroring").setLogLevel(LogLevel.apply(loggerConfig.logLevel))
     Logger.setDefaultFormatter(CustomLogFormatter)
   }
 

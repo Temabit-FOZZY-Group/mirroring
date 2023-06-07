@@ -16,7 +16,7 @@
 
 package mirroring.builders
 
-import mirroring.Config
+import mirroring.config.Config
 import wvlet.log.LogSupport
 
 object ConfigBuilder extends LogSupport {

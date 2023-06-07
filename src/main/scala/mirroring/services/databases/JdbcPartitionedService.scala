@@ -17,7 +17,6 @@
 package mirroring.services.databases
 
 import mirroring.services.SparkContextTrait
-import mirroring.services.SparkService.spark
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, date_format, date_trunc}
 import wvlet.log.LogSupport
@@ -60,7 +59,7 @@ class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) 
          |FROM $query) as query
       """.stripMargin
 
-    var ds: DataFrame = spark.read
+    var ds: DataFrame = this.getSparkSession.read
       .format("jdbc")
       .option("url", context.url)
       .option("dbtable", sql)

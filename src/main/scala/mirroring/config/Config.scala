@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package mirroring
+package mirroring.config
 
 import mirroring.builders.{DataframeBuilderContext, FilterBuilder, SqlBuilder}
 import mirroring.services.databases.JdbcContext
@@ -73,7 +73,6 @@ case class Config(
     deletedFileRetentionDuration: String
 ) extends LogSupport {
 
-  FlowLogger.init(schema, tab, logLvl)
   var minDate: LocalDate = _
   var maxDate: LocalDate = _
 

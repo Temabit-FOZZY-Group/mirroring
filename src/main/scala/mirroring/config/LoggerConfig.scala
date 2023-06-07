@@ -13,9 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package mirroring.config
 
-package mirroring
-
-/** Case class for userMetadata property of delta table.
-  */
-case class UserMetadata(ChangeTrackingVersion: BigInt)
+case class LoggerConfig(
+    schema: String,
+    table: String,
+    logLevel: String,
+    applicationId: String,
+    applicationAttemptId: String
+)

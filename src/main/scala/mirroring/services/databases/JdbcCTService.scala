@@ -16,7 +16,7 @@
 
 package mirroring.services.databases
 import mirroring.builders._
-import mirroring.services.SparkService.spark
+import mirroring.services.SparkContextTrait
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.DataFrame
@@ -26,7 +26,7 @@ import wvlet.log.LogSupport
 
 import java.sql.{Connection, DriverManager, ResultSet}
 
-object JdbcCTService extends LogSupport {
+object JdbcCTService extends LogSupport with SparkContextTrait {
 
   def loadData(jdbcContext: JdbcContext): DataFrame = {
     class ConnectionManager extends JdbcRDD.ConnectionFactory {
@@ -45,7 +45,7 @@ object JdbcCTService extends LogSupport {
       logger.debug(schema)
       logger.info("Executing procedure to create rdd...")
       val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
-        spark.sparkContext,
+        getSparkSession.sparkContext,
         connectionManager,
         jdbcContext.ctChangesQuery,
         params(0).toLong,
@@ -55,7 +55,7 @@ object JdbcCTService extends LogSupport {
       )
       logger.info("Building DataFrame from result set...")
       JdbcBuilder.buildDataFrameFromRDD(
-        myRDD.repartition(spark.conf.get("spark.sql.shuffle.partitions").toInt),
+        myRDD.repartition(getSparkSession.conf.get("spark.sql.shuffle.partitions").toInt),
         schema
       )
     } catch {
@@ -121,7 +121,7 @@ object JdbcCTService extends LogSupport {
   def getChangeTrackingVersion(query: String, jdbcContext: JdbcContext): BigInt = {
     var version: BigInt = BigInt(0)
     try {
-      version = spark.read
+      version = getSparkSession.read
         .format("jdbc")
         .option("url", jdbcContext.url)
         .option("dbtable", query)

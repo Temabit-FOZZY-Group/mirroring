@@ -35,7 +35,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
   }
 
   def getDataFrameReader: DataFrameReader = {
-    getSession.read
+    getSparkSession.read
       .format("jdbc")
       .option("url", jdbcContext.url)
       .option("customSchema", customSchema)
@@ -65,7 +65,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
   }
 
   private def executeQuery(sql: String): DataFrame = {
-    getSession.read
+    getSparkSession.read
       .format("jdbc")
       .option("url", jdbcContext.url)
       .option("dbtable", sql)

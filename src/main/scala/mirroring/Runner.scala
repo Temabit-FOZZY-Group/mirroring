@@ -19,6 +19,7 @@ package mirroring
 import io.delta.tables.DeltaTable
 import org.apache.spark.sql.DataFrame
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
+import mirroring.config.{Config, FlowLogger, LoggerConfig}
 import mirroring.handlers.ChangeTrackingHandler
 import mirroring.services.databases.{
   JdbcCTService,
@@ -27,10 +28,10 @@ import mirroring.services.databases.{
   JdbcService
 }
 import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
-import mirroring.services.{DeltaTableService, SparkContextTrait, SparkService, SqlService}
+import mirroring.services.{DeltaTableService, SparkContextTrait, SqlService}
 import wvlet.log.LogSupport
 
-object Runner extends LogSupport {
+object Runner extends LogSupport with SparkContextTrait {
 
   def initConfig(args: Array[String]): Config = {
     val config: Config = ConfigBuilder.build(ConfigBuilder.parse(args))
@@ -39,18 +40,28 @@ object Runner extends LogSupport {
   }
 
   def setSparkContext(config: Config): Unit = {
-    val spark = SparkService.spark
+
+    val spark = getSparkSession
     logger.info(
       s"""Creating spark session with configurations: ${spark.conf.getAll
         .mkString(", ")}"""
     )
+
+    val loggerConfig = LoggerConfig(
+      schema = config.schema,
+      table = config.tab,
+      logLevel = config.logLvl,
+      applicationId = spark.sparkContext.applicationId,
+      applicationAttemptId = spark.sparkContext.applicationAttemptId.getOrElse("1")
+    )
+
+    FlowLogger.init(loggerConfig)
     spark.sparkContext.setLogLevel(config.logSparkLvl)
     spark.conf.set("spark.sql.session.timeZone", config.timezone)
   }
 
   def main(args: Array[String]): Unit = {
     // preliminary FlowLogger initialization in order to log config building
-    FlowLogger.init("schema", "tab", "info")
     val config: Config = initConfig(args)
     logger.info("Starting mirroring-lib...")
     setSparkContext(config)
@@ -70,8 +81,9 @@ object Runner extends LogSupport {
     val jdbcContext = config.getJdbcContext
 
     lazy val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(config)
+      with SparkContextTrait
     lazy val isDeltaTableExists: Boolean =
-      DeltaTable.isDeltaTable(SparkService.spark, config.pathToSave)
+      DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
 
     def getQuery: String = {
       if (config.isChangeTrackingEnabled) {
@@ -104,11 +116,11 @@ object Runner extends LogSupport {
 
   private def getWriteService(config: Config, writerContext: WriterContext) = {
     if (config.isChangeTrackingEnabled) {
-      new ChangeTrackingService(writerContext)
+      new ChangeTrackingService(writerContext) with SparkContextTrait
     } else if (config.useMerge) {
-      new MergeService(writerContext)
+      new MergeService(writerContext) with SparkContextTrait
     } else {
-      new DeltaService(writerContext)
+      new DeltaService(writerContext) with SparkContextTrait
     }
   }
 

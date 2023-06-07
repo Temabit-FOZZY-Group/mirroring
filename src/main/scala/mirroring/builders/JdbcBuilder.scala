@@ -16,8 +16,9 @@
 
 package mirroring.builders
 
+import mirroring.Runner.getSparkSession
 import mirroring.builders.SqlBuilder.buildSQLObjectName
-import mirroring.services.SparkService.spark
+import mirroring.services.SparkContextTrait
 import mirroring.services.databases.JdbcContext
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.sql.types._
@@ -27,6 +28,7 @@ import wvlet.log.LogSupport
 import java.sql.{CallableStatement, Connection, ResultSet, ResultSetMetaData}
 
 object JdbcBuilder extends LogSupport {
+  this: SparkContextTrait =>
 
   def getResultSet(
       connection: Connection,
@@ -90,7 +92,7 @@ object JdbcBuilder extends LogSupport {
   }
 
   def buildDataFrameFromRDD(rs: JavaRDD[Array[Object]], schema: StructType): DataFrame = {
-    spark.createDataFrame(rs.map(Row.fromSeq(_)), schema)
+    getSparkSession.createDataFrame(rs.map(Row.fromSeq(_)), schema)
   }
 
   private def fromJavaSQLType(colType: Int, precision: Int, scale: Int): DataType = colType match {
