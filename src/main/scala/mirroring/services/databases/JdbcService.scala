@@ -28,9 +28,9 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
     // viz https://jtds.sourceforge.net/typemap.html
     val sql =
       s"""(select concat(column_name, ' ', data_type) as res from INFORMATION_SCHEMA.COLUMNS with (nolock) where
-         |TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}'
-         |and DATA_TYPE = 'date') as subq
-         |""".stripMargin
+       |TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}'
+       |and DATA_TYPE IN ('date', 'datetime2')) as subq
+       |""".stripMargin
 
     val sourceSchema =
       spark.read
