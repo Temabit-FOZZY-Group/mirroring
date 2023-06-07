@@ -53,11 +53,7 @@ class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) 
 
   private def getBounds(): DataFrame = {
     val sql =
-      s"""(SELECT
-         |MAX(subq.${context.partitionColumn}) AS MAX,
-         |MIN(subq.${context.partitionColumn}) AS MIN
-         |FROM $query) as query
-      """.stripMargin
+      s"""(SELECT MAX(subq.${context.partitionColumn}) AS MAX, MIN(subq.${context.partitionColumn}) AS MIN FROM $query) as query""".stripMargin
 
     var ds: DataFrame = this.getSparkSession.read
       .format("jdbc")
