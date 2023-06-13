@@ -43,7 +43,7 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
 
   private def getCustomSchema: String = {
     // create custom schema to avoid transferring DATE as STRING
-    // viz https://jtds.sourceforge.net/typemap.htmlØ
+    // viz https://jtds.sourceforge.net/typemap.html
     val getDateColumnsQuery =
       s"""(select concat(column_name, ' ', data_type) as res from INFORMATION_SCHEMA.COLUMNS with (nolock) where
        |TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}'
