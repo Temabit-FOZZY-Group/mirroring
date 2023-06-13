@@ -17,13 +17,21 @@
 package mirroring.config
 
 import wvlet.airframe.codec.MessageCodec
-import wvlet.log.LogFormatter.appendStackTrace
+import wvlet.log.LogFormatter.{SourceCodeLogFormatter, appendStackTrace}
 import wvlet.log.{LogFormatter, LogLevel, LogRecord, Logger}
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
 object FlowLogger {
+
+  private val datetimeFormatter = new SimpleDateFormat("yy/MM/dd hh:mm:ss")
+
+  def init(logLevel: LogLevel = LogLevel.INFO): Unit = {
+    Logger.init
+    Logger("mirroring").setLogLevel(logLevel)
+    Logger.setDefaultFormatter(SourceCodeLogFormatter)
+  }
 
   def init(loggerConfig: LoggerConfig): Unit = {
     Logger.init
@@ -40,13 +48,13 @@ object FlowLogger {
   }
 
   case class CustomLogFormatter(loggerConfig: LoggerConfig) extends LogFormatter {
-    val datetimeFormatter = new SimpleDateFormat("yy/MM/dd hh:mm:ss")
+
     override def formatLog(logRecord: LogRecord): String = {
       val record = LoggerRecord(
         timestamp = datetimeFormatter.format(getCurrentTimestamp),
         level = logRecord.level.toString,
-        sparkApplicationId = loggerConfig.applicationId.getOrElse(""),
-        sparkApplicationAttempt = loggerConfig.applicationAttemptId.getOrElse(""),
+        sparkApplicationId = loggerConfig.applicationId,
+        sparkApplicationAttempt = loggerConfig.applicationAttemptId,
         mirrorTaskName = s"mirroring_${loggerConfig.schema}__${loggerConfig.table}",
         loggerName = logRecord.getLoggerName,
         message = logRecord.getMessage

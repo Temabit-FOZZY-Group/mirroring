@@ -34,6 +34,7 @@ import wvlet.log.LogSupport
 object Runner extends LogSupport with SparkContextTrait {
 
   def main(args: Array[String]): Unit = {
+    FlowLogger.init()
     // preliminary FlowLogger initialization in order to log config building
     val config: Config = initConfig(args)
     logger.info("Starting mirroring-lib...")
@@ -57,30 +58,25 @@ object Runner extends LogSupport with SparkContextTrait {
   }
 
   def setSparkContext(config: Config): Unit = {
-    val loggerConfig = LoggerConfig(
-      schema = config.schema,
-      table = config.tab,
-      logLevel = config.logLvl,
-      applicationId = None,
-      applicationAttemptId = None
-    )
-
-    FlowLogger.init(loggerConfig)
 
     val spark = getSparkSession
     spark.sparkContext.setLogLevel(config.logSparkLvl)
     spark.conf.set("spark.sql.session.timeZone", config.timezone)
+
     logger.info(
       s"""Creating spark session with configurations: ${spark.conf.getAll
         .mkString(", ")}"""
     )
 
-    FlowLogger.setLogFormatter(
-      loggerConfig.copy(
-        applicationId = Option(spark.sparkContext.applicationId),
-        applicationAttemptId = Option(spark.sparkContext.applicationAttemptId.getOrElse("1"))
-      )
+    val loggerConfig = LoggerConfig(
+      schema = config.schema,
+      table = config.tab,
+      logLevel = config.logLvl,
+      applicationId = spark.sparkContext.applicationId,
+      applicationAttemptId = spark.sparkContext.applicationAttemptId.getOrElse("1")
     )
+
+    FlowLogger.setLogFormatter(loggerConfig)
   }
 
   private def loadDataFromSqlSource(config: Config, writerContext: WriterContext): DataFrame = {

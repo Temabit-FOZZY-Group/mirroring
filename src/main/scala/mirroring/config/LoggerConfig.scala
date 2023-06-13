@@ -19,6 +19,6 @@ case class LoggerConfig(
     schema: String,
     table: String,
     logLevel: String,
-    applicationId: Option[String],
-    applicationAttemptId: Option[String]
+    applicationId: String,
+    applicationAttemptId: String
 )
