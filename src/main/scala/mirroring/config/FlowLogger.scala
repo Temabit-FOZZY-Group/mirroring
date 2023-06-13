@@ -17,7 +17,7 @@
 package mirroring.config
 
 import wvlet.airframe.codec.MessageCodec
-import wvlet.log.LogFormatter.{SourceCodeLogFormatter, appendStackTrace}
+import wvlet.log.LogFormatter.{IntelliJLogFormatter, SourceCodeLogFormatter, appendStackTrace}
 import wvlet.log.{LogFormatter, LogLevel, LogRecord, Logger}
 
 import java.text.SimpleDateFormat
@@ -28,41 +28,56 @@ object FlowLogger {
   private val datetimeFormatter = new SimpleDateFormat("yy/MM/dd hh:mm:ss")
 
   def init(logLevel: LogLevel = LogLevel.INFO): Unit = {
-    Logger.init
+    object DumbLogFormatter extends LogFormatter {
+      Logger.init
+      override def formatLog(logRecord: LogRecord): String = {
+        val record = LoggerRecord(
+          timestamp = datetimeFormatter.format(getCurrentTimestamp),
+          level = logRecord.level.toString,
+          sparkApplicationId = "",
+          sparkApplicationAttempt = "1",
+          mirrorTaskName = "mirroring",
+          loggerName = logRecord.getLoggerName,
+          message = logRecord.getMessage
+        )
+        val codec = MessageCodec.of[LoggerRecord]
+        val jsonMessage = codec.toJson(record)
+        appendStackTrace(jsonMessage, logRecord)
+      }
+    }
     Logger("mirroring").setLogLevel(logLevel)
-    Logger.setDefaultFormatter(SourceCodeLogFormatter)
+    Logger.setDefaultFormatter(DumbLogFormatter)
   }
 
   def init(loggerConfig: LoggerConfig): Unit = {
     Logger.init
-    Logger("mirroring").setLogLevel(LogLevel.apply(loggerConfig.logLevel))
-    Logger.setDefaultFormatter(CustomLogFormatter(loggerConfig))
-  }
+    object CustomLogFormatter extends LogFormatter {
 
-  def setLogFormatter(loggerConfig: LoggerConfig): Unit = {
-    Logger.setDefaultFormatter(CustomLogFormatter(loggerConfig))
+      override def formatLog(logRecord: LogRecord): String = {
+        val record = LoggerRecord(
+          timestamp = datetimeFormatter.format(getCurrentTimestamp),
+          level = logRecord.level.toString,
+          sparkApplicationId = loggerConfig.applicationId,
+          sparkApplicationAttempt = loggerConfig.applicationAttemptId,
+          mirrorTaskName = s"mirroring_${loggerConfig.schema}__${loggerConfig.table}",
+          loggerName = logRecord.getLoggerName,
+          message = logRecord.getMessage
+        )
+        val codec = MessageCodec.of[LoggerRecord]
+        val jsonMessage = codec.toJson(record)
+        appendStackTrace(jsonMessage, logRecord)
+      }
+    }
+
+    Logger("mirroring").setLogLevel(LogLevel.apply(loggerConfig.logLevel))
+    Logger.setDefaultFormatter(CustomLogFormatter)
   }
 
   private def getCurrentTimestamp: java.util.Date = {
     Calendar.getInstance().getTime
   }
 
-  case class CustomLogFormatter(loggerConfig: LoggerConfig) extends LogFormatter {
 
-    override def formatLog(logRecord: LogRecord): String = {
-      val record = LoggerRecord(
-        timestamp = datetimeFormatter.format(getCurrentTimestamp),
-        level = logRecord.level.toString,
-        sparkApplicationId = loggerConfig.applicationId,
-        sparkApplicationAttempt = loggerConfig.applicationAttemptId,
-        mirrorTaskName = s"mirroring_${loggerConfig.schema}__${loggerConfig.table}",
-        loggerName = logRecord.getLoggerName,
-        message = logRecord.getMessage
-      )
-      val codec       = MessageCodec.of[LoggerRecord]
-      val jsonMessage = codec.toJson(record)
-      appendStackTrace(jsonMessage, logRecord)
-    }
-  }
+
 
 }
