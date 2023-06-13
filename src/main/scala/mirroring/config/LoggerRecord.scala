@@ -13,23 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package mirroring.config
 
-package mirroring.services
-
-import org.apache.spark.sql.SparkSession
-
-object SparkService {
-
-  val spark: SparkSession = SparkSession
-    .builder()
-    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-    .config(
-      "spark.sql.catalog.spark_catalog",
-      "org.apache.spark.sql.delta.catalog.DeltaCatalog"
-    )
-    .config("spark.sql.parquet.int96RebaseModeInWrite", "LEGACY")
-    .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-    .enableHiveSupport()
-    .getOrCreate()
-
-}
+case class LoggerRecord(
+    timestamp: String,
+    level: String,
+    sparkApplicationId: String,
+    sparkApplicationAttempt: String,
+    mirrorTaskName: String,
+    loggerName: String,
+    message: String
+)

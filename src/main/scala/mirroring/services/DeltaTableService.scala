@@ -17,10 +17,10 @@
 package mirroring.services
 
 import io.delta.tables.DeltaTable
-import mirroring.services.SparkService.spark
 import wvlet.log.LogSupport
 
-object DeltaTableService extends LogSupport {
+object DeltaTableService extends LogSupport with SparkContextTrait {
+
   def executeZOrdering(
       pathToSave: String,
       zorderbyCol: Array[String],
@@ -32,11 +32,10 @@ object DeltaTableService extends LogSupport {
       ","
     )}] where [$predicate]""")
     DeltaTable
-      .forPath(spark, pathToSave)
+      .forPath(getSparkSession, pathToSave)
       .optimize()
       .where(predicate)
       .executeZOrderBy(zorderbyCol: _*)
     logger.info("Finished z-ordering")
   }
-
 }

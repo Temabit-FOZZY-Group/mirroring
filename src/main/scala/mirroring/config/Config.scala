@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package mirroring
+package mirroring.config
 
 import mirroring.builders.{DataframeBuilderContext, FilterBuilder, SqlBuilder}
 import mirroring.services.databases.JdbcContext
@@ -59,7 +59,7 @@ case class Config(
     timezone: String,
     isChangeTrackingEnabled: Boolean,
     private val _primaryKey: String,
-    private val _zorderbyCol: String,
+    private val _zOrderByCol: String,
     logLvl: String,
     logSparkLvl: String,
     CTChangesQuery: String,
@@ -73,7 +73,6 @@ case class Config(
     deletedFileRetentionDuration: String
 ) extends LogSupport {
 
-  FlowLogger.init(schema, tab, logLvl)
   var minDate: LocalDate = _
   var maxDate: LocalDate = _
 
@@ -90,7 +89,7 @@ case class Config(
   val pathToSave: String                     = s"${_pathToSave}/$targetTableName"
   val mergeKeys: Array[String]               = stringToArray(_mergeKeys)
   val primary_key: Array[String]             = stringToArray(_primaryKey)
-  val zorderby_col: Array[String]            = stringToArray(_zorderbyCol)
+  val zorderby_col: Array[String]            = stringToArray(_zOrderByCol)
   val partitionCols: Array[String]           = stringToArray(_partitionCol)
   val CTChangesQueryParams: Array[String]    = stringToArray(_CTChangesQueryParams)
   val CTMinValidVersionParams: Array[String] = stringToArray(_CTMinValidVersionParams)

@@ -13,9 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package mirroring.services
 
-package mirroring
+import org.apache.spark.sql.SparkSession
 
-/** Case class for userMetadata property of delta table.
-  */
-case class UserMetadata(ChangeTrackingVersion: BigInt)
+trait SparkContextTrait {
+
+  def getSparkSession: SparkSession = {
+    SparkSession
+      .builder()
+      .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+      .config(
+        "spark.sql.catalog.spark_catalog",
+        "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+      )
+      .config("spark.sql.parquet.int96RebaseModeInWrite", "LEGACY")
+      .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .enableHiveSupport()
+      .getOrCreate()
+  }
+
+}

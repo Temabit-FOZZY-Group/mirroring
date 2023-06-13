@@ -17,13 +17,13 @@
 package mirroring.services
 
 import io.delta.tables.DeltaTable
-import mirroring.Config
 import mirroring.builders.SqlBuilder
-import mirroring.services.SparkService.spark
+import mirroring.config.Config
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.delta.implicits.stringEncoder
 import wvlet.log.LogSupport
 
-object SqlService extends LogSupport {
+object SqlService extends LogSupport with SparkContextTrait {
 
   def run(config: Config, userMetadataJSON: String): Unit = {
 
@@ -35,31 +35,18 @@ object SqlService extends LogSupport {
       config.pathToSave
     )
 
+    val spark = getSparkSession
+
     if (DeltaTable.isDeltaTable(spark, config.pathToSave)) {
       logger.info(s"Running SQL: $createDbSQL")
       spark.sql(createDbSQL)
       logger.info(s"Running SQL: ${createTableSQL.linesIterator.mkString(" ").trim}")
       spark.sql(createTableSQL)
 
-      val logRetentionDuration = spark
-        .sql(
-          s"SHOW TBLPROPERTIES ${config.hiveDb}.${config.targetTableName} ('delta.logRetentionDuration');"
-        )
-        .select("value")
-        .as[String]
-        .first
+      val logRetentionDuration         = getLogRetentionDuration(config, spark)
+      val deletedFileRetentionDuration = getDeletedFileLogRetention(config, spark)
 
-      val deletedFileRetentionDuration = spark
-        .sql(s"""SHOW TBLPROPERTIES ${config.hiveDb}.${config.targetTableName}
-          |('delta.deletedFileRetentionDuration');""".stripMargin)
-        .select("value")
-        .as[String]
-        .first
-
-      if (
-        !logRetentionDuration.equals(config.logRetentionDuration) || !deletedFileRetentionDuration
-          .equals(config.deletedFileRetentionDuration)
-      ) {
+      if (logRetentionConfigIsChanged(config, logRetentionDuration, deletedFileRetentionDuration)) {
         val alterTableSQL = SqlBuilder.buildAlterTableSQL(
           config.hiveDb,
           config.targetTableName,
@@ -75,5 +62,33 @@ object SqlService extends LogSupport {
         spark.sql(alterTableSQL)
       }
     }
+  }
+
+  private def logRetentionConfigIsChanged(
+      config: Config,
+      logRetentionDuration: String,
+      deletedFileRetentionDuration: String
+  ) = {
+    !logRetentionDuration.equals(config.logRetentionDuration) || !deletedFileRetentionDuration
+      .equals(config.deletedFileRetentionDuration)
+  }
+
+  private def getDeletedFileLogRetention(config: Config, spark: SparkSession) = {
+    spark
+      .sql(s"""SHOW TBLPROPERTIES ${config.hiveDb}.${config.targetTableName}
+           |('delta.deletedFileRetentionDuration');""".stripMargin)
+      .select("value")
+      .as[String]
+      .first
+  }
+
+  private def getLogRetentionDuration(config: Config, spark: SparkSession) = {
+    spark
+      .sql(
+        s"SHOW TBLPROPERTIES ${config.hiveDb}.${config.targetTableName} ('delta.logRetentionDuration');"
+      )
+      .select("value")
+      .as[String]
+      .first
   }
 }

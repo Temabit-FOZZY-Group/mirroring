@@ -17,15 +17,16 @@
 package mirroring.handlers
 
 import io.delta.tables.DeltaTable
-import mirroring.{Config, UserMetadata}
 import mirroring.builders._
-import mirroring.services.SparkService.spark
-import mirroring.services.databases.{JdbcContext, JdbcCTService}
+import mirroring.config.{Config, UserMetadata}
+import mirroring.services.SparkContextTrait
+import mirroring.services.databases.{JdbcCTService, JdbcContext}
 import mirroring.services.writer.WriterContext
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogSupport
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
+  this: SparkContextTrait =>
 
   private lazy val jdbcContext = config.getJdbcContext
 
@@ -73,7 +74,7 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
 
   private lazy val ctDeltaVersion: BigInt = {
     val userMetaJSON = DeltaTable
-      .forPath(spark, config.pathToSave)
+      .forPath(getSparkSession, config.pathToSave)
       .history()
       .where("operation <> 'OPTIMIZE'")
       .select("userMetadata")

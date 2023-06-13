@@ -17,18 +17,18 @@
 package mirroring.services.writer
 
 import io.delta.tables.DeltaTable
-import mirroring.UserMetadata
 import mirroring.builders.FilterBuilder
+import mirroring.config.{Config, UserMetadata}
+import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
-import mirroring.services.SparkService.spark
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogSupport
-import mirroring.Config
 
 class ChangeTrackingService(
     context: WriterContext
 ) extends DeltaService(context)
     with LogSupport {
+  this: SparkContextTrait =>
 
   private val deleteCondition =
     s"${Config.SourceAlias}.SYS_CHANGE_OPERATION = 'D'"
@@ -41,6 +41,7 @@ class ChangeTrackingService(
   val userMetadataJSON: String = generateUserMetadataJSON(context.ctCurrentVersion)
 
   override def write(data: DataFrame): Unit = {
+    val spark = this.getSparkSession
     if (DeltaTable.isDeltaTable(spark, context.path)) {
       logger.info("Target table already exists. Merging data...")
       verifySchemaMatch(data)

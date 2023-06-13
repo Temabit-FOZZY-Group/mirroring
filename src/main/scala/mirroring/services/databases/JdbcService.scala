@@ -16,35 +16,46 @@
 
 package mirroring.services.databases
 
-import mirroring.services.SparkService.spark
+import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.delta.implicits.stringEncoder
 import org.apache.spark.sql.{DataFrame, DataFrameReader}
 import wvlet.log.LogSupport
 
 class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
+  this: SparkContextTrait =>
 
-  protected lazy val customSchema: String = {
+  protected lazy val customSchema: String = getCustomSchema
+
+  def loadData(query: String): DataFrame = {
+    logger.info(s"Reading data with query: ${query.linesIterator.mkString(" ").trim}")
+
+    getDataFrameReader
+      .option("dbtable", query)
+      .load()
+  }
+
+  def getDataFrameReader: DataFrameReader = {
+    getSparkSession.read
+      .format("jdbc")
+      .option("url", jdbcContext.url)
+      .option("customSchema", customSchema)
+  }
+
+  private def getCustomSchema: String = {
     // create custom schema to avoid transferring DATE as STRING
     // viz https://jtds.sourceforge.net/typemap.html
-    val sql =
+    val getDateColumnsQuery =
       s"""(select concat(column_name, ' ', data_type) as res from INFORMATION_SCHEMA.COLUMNS with (nolock) where
-         |TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}'
-         |and DATA_TYPE = 'date') as subq
-         |""".stripMargin
+       |TABLE_NAME = '${jdbcContext.table}' and TABLE_SCHEMA = '${jdbcContext.schema}'
+       |and DATA_TYPE IN ('date', 'datetime2')) as subq
+       |""".stripMargin
 
-    val sourceSchema =
-      spark.read
-        .format("jdbc")
-        .option("url", jdbcContext.url)
-        .option("dbtable", sql)
-        .load()
-        .as[String]
+    val sourceSchema = executeQuery(getDateColumnsQuery).as[String]
 
     try {
-      val customSchema = sourceSchema
-        .reduce(_ + ", " + _)
+      val customSchema = sourceSchema.reduce(_ + ", " + _)
       logger.info(s"Reading data with customSchema: $customSchema")
-      customSchema
+      customSchema.replaceAll("datetime2", "timestamp")
     } catch {
       case e: java.lang.UnsupportedOperationException
           if e.getMessage.contains("empty collection") =>
@@ -52,17 +63,12 @@ class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
         ""
     }
   }
-  def loadData(_query: String): DataFrame = {
-    logger.info(s"Reading data with query: ${_query.linesIterator.mkString(" ").trim}")
-    dfReader
-      .option("dbtable", _query)
-      .load()
-  }
 
-  def dfReader: DataFrameReader = {
-    spark.read
+  private def executeQuery(sql: String): DataFrame = {
+    getSparkSession.read
       .format("jdbc")
       .option("url", jdbcContext.url)
-      .option("customSchema", customSchema)
+      .option("dbtable", sql)
+      .load()
   }
 }

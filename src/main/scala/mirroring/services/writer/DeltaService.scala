@@ -18,14 +18,15 @@ package mirroring.services.writer
 
 import io.delta.tables.DeltaTable
 import mirroring.builders.FilterBuilder
-import mirroring.services.SparkService.spark
+import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import wvlet.log.LogSupport
 
 class DeltaService(context: WriterContext) extends LogSupport {
+  this: SparkContextTrait =>
 
   def write(data: DataFrame): Unit = {
-    if (DeltaTable.isDeltaTable(spark, context.path)) {
+    if (DeltaTable.isDeltaTable(this.getSparkSession, context.path)) {
       verifySchemaMatch(data)
     }
     logger.info(s"Saving data to ${context.path}")
@@ -65,7 +66,7 @@ class DeltaService(context: WriterContext) extends LogSupport {
 
   protected def checkSchema(columnsSource: Set[String]): Unit = {
     logger.info("Checking if schema match for source and destination...")
-    val df_reader                = spark.read.format("delta")
+    val df_reader                = this.getSparkSession.read.format("delta")
     val df                       = df_reader.load(context.path)
     val columnsDest: Set[String] = df.columns.toSet
     val columnsDiff: Set[String] = (columnsSource &~ columnsDest) | (columnsDest &~ columnsSource)

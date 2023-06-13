@@ -17,15 +17,40 @@
 package mirroring
 
 import io.delta.tables.DeltaTable
-import org.apache.spark.sql.DataFrame
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
+import mirroring.config.{Config, FlowLogger, LoggerConfig}
 import mirroring.handlers.ChangeTrackingHandler
-import mirroring.services.databases.{JdbcCTService, JdbcPartitionedService, JdbcService}
+import mirroring.services.databases.{
+  JdbcCTService,
+  JdbcContext,
+  JdbcPartitionedService,
+  JdbcService
+}
 import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
-import mirroring.services.{DeltaTableService, SparkService, SqlService}
-import wvlet.log.LogSupport
+import mirroring.services.{DeltaTableService, SparkContextTrait, SqlService}
+import org.apache.spark.sql.DataFrame
+import wvlet.log.{LogSupport, Logger}
 
-object Runner extends LogSupport {
+object Runner extends LogSupport with SparkContextTrait {
+
+  def main(args: Array[String]): Unit = {
+    // preliminary FlowLogger initialization in order to log config building
+    FlowLogger.init()
+
+    val config: Config = initConfig(args)
+    logger.info("Starting mirroring-lib...")
+    setSparkContext(config)
+
+    val writerContext: WriterContext = config.getWriterContext
+    val jdbcDF: DataFrame            = loadDataFromSqlSource(config, writerContext)
+
+    val sqlSourceData = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext)
+
+    val writerService = getWriteService(config, writerContext)
+    writerService.write(sqlSourceData)
+
+    deltaPostProcessing(config, sqlSourceData, writerService.getUserMetadataJSON)
+  }
 
   def initConfig(args: Array[String]): Config = {
     val config: Config = ConfigBuilder.build(ConfigBuilder.parse(args))
@@ -34,30 +59,43 @@ object Runner extends LogSupport {
   }
 
   def setSparkContext(config: Config): Unit = {
-    val spark = SparkService.spark
+
+    val spark = getSparkSession
+    spark.sparkContext.setLogLevel(config.logSparkLvl)
+    spark.conf.set("spark.sql.session.timeZone", config.timezone)
+
     logger.info(
       s"""Creating spark session with configurations: ${spark.conf.getAll
         .mkString(", ")}"""
     )
-    spark.sparkContext.setLogLevel(config.logSparkLvl)
-    spark.conf.set("spark.sql.session.timeZone", config.timezone)
+
+    val loggerConfig = LoggerConfig(
+      schema = config.schema,
+      table = config.tab,
+      logLevel = config.logLvl,
+      applicationId = spark.sparkContext.applicationId,
+      applicationAttemptId = spark.sparkContext.applicationAttemptId.getOrElse("1")
+    )
+
+    FlowLogger.init(loggerConfig)
   }
 
-  def main(args: Array[String]): Unit = {
-    // preliminary FlowLogger initialization in order to log config building
-    FlowLogger.init("schema", "tab", "info")
-    val config: Config = initConfig(args)
-    logger.info("Starting mirroring-lib...")
-    setSparkContext(config)
-    val jdbcContext                                  = config.getJdbcContext
-    val writerContext: WriterContext                 = config.getWriterContext
-    var query: String                                = config.query
-    val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(config)
-    lazy val isDeltaTableExists: Boolean = DeltaTable.isDeltaTable(
-      SparkService.spark,
-      config.pathToSave
-    )
-    var userMetadataJSON: String = ""
+  private def loadDataFromSqlSource(config: Config, writerContext: WriterContext): DataFrame = {
+    val jdbcContext = config.getJdbcContext
+
+    lazy val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(config)
+      with SparkContextTrait
+    lazy val isDeltaTableExists: Boolean =
+      DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
+
+    def getQuery: String = {
+      if (config.isChangeTrackingEnabled) {
+        changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
+        changeTrackingHandler.query(isDeltaTableExists)
+      } else {
+        config.query
+      }
+    }
 
     val jdbcDF: DataFrame =
       if (config.isChangeTrackingEnabled && isDeltaTableExists && config.CTChangesQuery.nonEmpty) {
@@ -65,31 +103,31 @@ object Runner extends LogSupport {
         logger.info("Change Tracking: use custom ctChangesQuery")
         JdbcCTService.loadData(jdbcContext)
       } else {
-        if (config.isChangeTrackingEnabled) {
-          changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
-          query = changeTrackingHandler.query(isDeltaTableExists)
-        }
-        var jdbcService: JdbcService = new JdbcService(jdbcContext)
-        if (config.splitBy.nonEmpty) {
-          jdbcService = new JdbcPartitionedService(jdbcContext)
-        }
-        jdbcService.loadData(query)
+        val jdbcService: JdbcService = getJdbcService(config, jdbcContext)
+        jdbcService.loadData(getQuery)
       }
-
-    val ds = DataframeBuilder.buildDataFrame(jdbcDF, config.getDataframeBuilderContext)
-
-    var writerService: DeltaService = new DeltaService(writerContext)
-    if (config.isChangeTrackingEnabled) {
-      writerService = new ChangeTrackingService(writerContext)
-      userMetadataJSON = writerService.getUserMetadataJSON
-    } else if (config.useMerge) {
-      writerService = new MergeService(writerContext)
-    }
-    writerService.write(data = ds)
-    deltaPostProcessing(config, ds, userMetadataJSON)
+    jdbcDF
   }
 
-  def deltaPostProcessing(config: Config, ds: DataFrame, userMetadataJSON: String): Unit = {
+  private def getJdbcService(config: Config, jdbcContext: JdbcContext) = {
+    if (config.splitBy.nonEmpty) {
+      new JdbcPartitionedService(jdbcContext) with SparkContextTrait
+    } else {
+      new JdbcService(jdbcContext) with SparkContextTrait
+    }
+  }
+
+  private def getWriteService(config: Config, writerContext: WriterContext) = {
+    if (config.isChangeTrackingEnabled) {
+      new ChangeTrackingService(writerContext) with SparkContextTrait
+    } else if (config.useMerge) {
+      new MergeService(writerContext) with SparkContextTrait
+    } else {
+      new DeltaService(writerContext) with SparkContextTrait
+    }
+  }
+
+  private def deltaPostProcessing(config: Config, ds: DataFrame, userMetadataJSON: String): Unit = {
     if (config.zorderby_col.nonEmpty) {
       val replaceWhere =
         FilterBuilder.buildReplaceWherePredicate(

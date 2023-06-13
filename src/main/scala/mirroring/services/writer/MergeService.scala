@@ -18,21 +18,22 @@ package mirroring.services.writer
 
 import io.delta.tables.DeltaTable
 import mirroring.builders.FilterBuilder
+import mirroring.config.Config
+import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
-import mirroring.services.SparkService.spark
 import wvlet.log.LogSupport
-import mirroring.Config
 
 class MergeService(context: WriterContext) extends DeltaService(context) with LogSupport {
+  this: SparkContextTrait =>
 
   override def write(data: DataFrame): Unit = {
-    if (DeltaTable.isDeltaTable(spark, context.path)) {
+    if (DeltaTable.isDeltaTable(this.getSparkSession, context.path)) {
       logger.info("Target table already exists. Merging data...")
 
       verifySchemaMatch(data)
 
       DeltaTable
-        .forPath(spark, context.path)
+        .forPath(this.getSparkSession, context.path)
         .as(Config.TargetAlias)
         .merge(
           data.as(Config.SourceAlias),

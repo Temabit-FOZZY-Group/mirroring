@@ -16,71 +16,83 @@
 
 package mirroring.builders
 
+import mirroring.Runner.getSparkSession
 import mirroring.builders.SqlBuilder.buildSQLObjectName
-import mirroring.services.SparkService.spark
+import mirroring.services.SparkContextTrait
 import mirroring.services.databases.JdbcContext
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Row}
 import wvlet.log.LogSupport
 
-import java.sql.{CallableStatement, Connection, ResultSet}
+import java.sql.{CallableStatement, Connection, ResultSet, ResultSetMetaData}
 
 object JdbcBuilder extends LogSupport {
+  this: SparkContextTrait =>
 
-  def buildJDBCResultSet(
+  def getResultSet(
       connection: Connection,
       query: String,
-      parameters: Array[String] = Array[String]()
+      parameters: Array[String] = Array()
   ): ResultSet = {
-    val cStmt: CallableStatement =
-      connection.prepareCall(query)
-    for ((parameter, i) <- parameters.zipWithIndex) {
-      cStmt.setString(i + 1, parameter)
+
+    val statement: CallableStatement = connection.prepareCall(query)
+
+    parameters.zipWithIndex.foreach { case (parameter, i) =>
+      statement.setString(i + 1, parameter)
     }
-    cStmt.execute()
-    val rs: ResultSet = cStmt.getResultSet
+    statement.execute()
+
+    val rs: ResultSet = statement.getResultSet
     rs
   }
 
   def buildStructFromResultSet(rs: ResultSet): StructType = {
+
     val md          = rs.getMetaData
     val columnCount = md.getColumnCount
-    val structFieldsList: List[StructField] = (1 to columnCount).map { i =>
-      StructField(
-        md.getColumnName(i),
-        fromJavaSQLType(md.getColumnType(i), md.getPrecision(i), md.getScale(i)),
-        md.isNullable(i) == 1
-      )
-    }.toList
+
+    val structFieldsList: List[StructField] =
+      (1 to columnCount)
+        .map(columnNumber => getStructField(md, columnNumber))
+        .toList
+
     StructType(structFieldsList)
+  }
+
+  private def getStructField(md: ResultSetMetaData, columnNumber: Int) = {
+    StructField(
+      md.getColumnName(columnNumber),
+      fromJavaSQLType(
+        md.getColumnType(columnNumber),
+        md.getPrecision(columnNumber),
+        md.getScale(columnNumber)
+      ),
+      md.isNullable(columnNumber) == 1
+    )
   }
 
   def buildCTQueryParams(
       CTChangesQueryParams: Array[String],
       jdbcContext: JdbcContext
   ): Array[String] = {
-    var params: Array[String] = Array()
-    for (param <- CTChangesQueryParams) {
-      param match {
-        case "defaultSQLTable" =>
-          logger.info("Change Tracking default param used: SQLTable")
-          params :+= buildSQLObjectName(jdbcContext.schema, jdbcContext.table)
-        case "queryCTLastVersion" =>
-          logger.info("Change Tracking default param used: querying last version")
-          params :+= jdbcContext.ctLastVersion.toString
-        case "queryCTCurrentVersion" =>
-          logger.info("Change Tracking default param used: querying current version")
-          params :+= jdbcContext.ctCurrentVersion.toString
-        case _ =>
-          params :+= param
-      }
+
+    CTChangesQueryParams.map {
+      case "defaultSQLTable" =>
+        logger.info("Change Tracking default param used: SQLTable")
+        buildSQLObjectName(jdbcContext.schema, jdbcContext.table)
+      case "queryCTLastVersion" =>
+        logger.info("Change Tracking default param used: querying last version")
+        jdbcContext.ctLastVersion.toString
+      case "queryCTCurrentVersion" =>
+        logger.info("Change Tracking default param used: querying current version")
+        jdbcContext.ctCurrentVersion.toString
+      case otherParam => otherParam
     }
-    params
   }
 
   def buildDataFrameFromRDD(rs: JavaRDD[Array[Object]], schema: StructType): DataFrame = {
-    spark.createDataFrame(rs.map(Row.fromSeq(_)), schema)
+    getSparkSession.createDataFrame(rs.map(Row.fromSeq(_)), schema)
   }
 
   private def fromJavaSQLType(colType: Int, precision: Int, scale: Int): DataType = colType match {

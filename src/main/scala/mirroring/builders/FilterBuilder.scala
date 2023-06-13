@@ -16,7 +16,7 @@
 
 package mirroring.builders
 
-import mirroring.Config
+import mirroring.config.Config
 import org.apache.spark.sql.{DataFrame, Encoders}
 import wvlet.log.LogSupport
 
