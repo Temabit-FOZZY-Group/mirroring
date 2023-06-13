@@ -27,29 +27,34 @@ object FlowLogger {
 
   def init(loggerConfig: LoggerConfig): Unit = {
     Logger.init
-    object CustomLogFormatter extends LogFormatter {
-      val datetimeFormatter = new SimpleDateFormat("yy/MM/dd hh:mm:ss")
-      override def formatLog(logRecord: LogRecord): String = {
-        val record = LoggerRecord(
-          timestamp = datetimeFormatter.format(getCurrentTimestamp),
-          level = logRecord.level.toString,
-          sparkApplicationId = loggerConfig.applicationId,
-          sparkApplicationAttempt = loggerConfig.applicationAttemptId,
-          mirrorTaskName = s"mirroring_${loggerConfig.schema}__${loggerConfig.table}",
-          loggerName = logRecord.getLoggerName,
-          message = logRecord.getMessage
-        )
-        val codec       = MessageCodec.of[LoggerRecord]
-        val jsonMessage = codec.toJson(record)
-        appendStackTrace(jsonMessage, logRecord)
-      }
-    }
     Logger("mirroring").setLogLevel(LogLevel.apply(loggerConfig.logLevel))
-    Logger.setDefaultFormatter(CustomLogFormatter)
+    Logger.setDefaultFormatter(CustomLogFormatter(loggerConfig))
+  }
+
+  def setLogFormatter(loggerConfig: LoggerConfig): Unit = {
+    Logger.setDefaultFormatter(CustomLogFormatter(loggerConfig))
   }
 
   private def getCurrentTimestamp: java.util.Date = {
     Calendar.getInstance().getTime
+  }
+
+  case class CustomLogFormatter(loggerConfig: LoggerConfig) extends LogFormatter {
+    val datetimeFormatter = new SimpleDateFormat("yy/MM/dd hh:mm:ss")
+    override def formatLog(logRecord: LogRecord): String = {
+      val record = LoggerRecord(
+        timestamp = datetimeFormatter.format(getCurrentTimestamp),
+        level = logRecord.level.toString,
+        sparkApplicationId = loggerConfig.applicationId.getOrElse(""),
+        sparkApplicationAttempt = loggerConfig.applicationAttemptId.getOrElse(""),
+        mirrorTaskName = s"mirroring_${loggerConfig.schema}__${loggerConfig.table}",
+        loggerName = logRecord.getLoggerName,
+        message = logRecord.getMessage
+      )
+      val codec       = MessageCodec.of[LoggerRecord]
+      val jsonMessage = codec.toJson(record)
+      appendStackTrace(jsonMessage, logRecord)
+    }
   }
 
 }

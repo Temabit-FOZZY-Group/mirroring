@@ -33,33 +33,6 @@ import wvlet.log.LogSupport
 
 object Runner extends LogSupport with SparkContextTrait {
 
-  def initConfig(args: Array[String]): Config = {
-    val config: Config = ConfigBuilder.build(ConfigBuilder.parse(args))
-    logger.debug(s"Parameters parsed: ${config.toString}")
-    config
-  }
-
-  def setSparkContext(config: Config): Unit = {
-
-    val spark = getSparkSession
-    logger.info(
-      s"""Creating spark session with configurations: ${spark.conf.getAll
-        .mkString(", ")}"""
-    )
-
-    val loggerConfig = LoggerConfig(
-      schema = config.schema,
-      table = config.tab,
-      logLevel = config.logLvl,
-      applicationId = spark.sparkContext.applicationId,
-      applicationAttemptId = spark.sparkContext.applicationAttemptId.getOrElse("1")
-    )
-
-    FlowLogger.init(loggerConfig)
-    spark.sparkContext.setLogLevel(config.logSparkLvl)
-    spark.conf.set("spark.sql.session.timeZone", config.timezone)
-  }
-
   def main(args: Array[String]): Unit = {
     // preliminary FlowLogger initialization in order to log config building
     val config: Config = initConfig(args)
@@ -75,6 +48,39 @@ object Runner extends LogSupport with SparkContextTrait {
     writerService.write(sqlSourceData)
 
     deltaPostProcessing(config, sqlSourceData, writerService.getUserMetadataJSON)
+  }
+
+  def initConfig(args: Array[String]): Config = {
+    val config: Config = ConfigBuilder.build(ConfigBuilder.parse(args))
+    logger.debug(s"Parameters parsed: ${config.toString}")
+    config
+  }
+
+  def setSparkContext(config: Config): Unit = {
+    val loggerConfig = LoggerConfig(
+      schema = config.schema,
+      table = config.tab,
+      logLevel = config.logLvl,
+      applicationId = None,
+      applicationAttemptId = None
+    )
+
+    FlowLogger.init(loggerConfig)
+
+    val spark = getSparkSession
+    spark.sparkContext.setLogLevel(config.logSparkLvl)
+    spark.conf.set("spark.sql.session.timeZone", config.timezone)
+    logger.info(
+      s"""Creating spark session with configurations: ${spark.conf.getAll
+        .mkString(", ")}"""
+    )
+
+    FlowLogger.setLogFormatter(
+      loggerConfig.copy(
+        applicationId = Option(spark.sparkContext.applicationId),
+        applicationAttemptId = Option(spark.sparkContext.applicationAttemptId.getOrElse("1"))
+      )
+    )
   }
 
   private def loadDataFromSqlSource(config: Config, writerContext: WriterContext): DataFrame = {
