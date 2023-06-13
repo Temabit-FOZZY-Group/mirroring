@@ -20,7 +20,12 @@ import io.delta.tables.DeltaTable
 import mirroring.builders.{ConfigBuilder, DataframeBuilder, FilterBuilder}
 import mirroring.config.{Config, FlowLogger, LoggerConfig}
 import mirroring.handlers.ChangeTrackingHandler
-import mirroring.services.databases.{JdbcCTService, JdbcContext, JdbcPartitionedService, JdbcService}
+import mirroring.services.databases.{
+  JdbcCTService,
+  JdbcContext,
+  JdbcPartitionedService,
+  JdbcService
+}
 import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
 import mirroring.services.{DeltaTableService, SparkContextTrait, SqlService}
 import org.apache.spark.sql.DataFrame

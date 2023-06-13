@@ -40,7 +40,7 @@ object FlowLogger {
           loggerName = logRecord.getLoggerName,
           message = logRecord.getMessage
         )
-        val codec = MessageCodec.of[LoggerRecord]
+        val codec       = MessageCodec.of[LoggerRecord]
         val jsonMessage = codec.toJson(record)
         appendStackTrace(jsonMessage, logRecord)
       }
@@ -63,7 +63,7 @@ object FlowLogger {
           loggerName = logRecord.getLoggerName,
           message = logRecord.getMessage
         )
-        val codec = MessageCodec.of[LoggerRecord]
+        val codec       = MessageCodec.of[LoggerRecord]
         val jsonMessage = codec.toJson(record)
         appendStackTrace(jsonMessage, logRecord)
       }
@@ -76,8 +76,5 @@ object FlowLogger {
   private def getCurrentTimestamp: java.util.Date = {
     Calendar.getInstance().getTime
   }
-
-
-
 
 }
