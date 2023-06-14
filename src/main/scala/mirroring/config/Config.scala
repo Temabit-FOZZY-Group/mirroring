@@ -59,6 +59,7 @@ case class Config(
     timezone: String,
     isChangeTrackingEnabled: Boolean,
     private val _primaryKey: String,
+    private val _parentKey: String,
     private val _zOrderByCol: String,
     logLvl: String,
     logSparkLvl: String,
@@ -89,6 +90,7 @@ case class Config(
   val pathToSave: String                     = s"${_pathToSave}/$targetTableName"
   val mergeKeys: Array[String]               = stringToArray(_mergeKeys)
   val primary_key: Array[String]             = stringToArray(_primaryKey)
+  val parent_key: Array[String]              = stringToArray(_parentKey)
   val zorderby_col: Array[String]            = stringToArray(_zOrderByCol)
   val partitionCols: Array[String]           = stringToArray(_partitionCol)
   val CTChangesQueryParams: Array[String]    = stringToArray(_CTChangesQueryParams)
@@ -145,6 +147,11 @@ case class Config(
     s"Parameter `primary_key` should be specified if `isChangeTrackingEnabled` is true."
   )
 
+  require(
+    CTChangesQuery.nonEmpty ^ parent_key.length == 0,
+    s"Parameter `parent_key` should be specified if custom CT is used."
+  )
+
   val whereClause = new mutable.StringBuilder("1=1")
 
   if (dtFlt.nonEmpty) {
@@ -199,6 +206,7 @@ case class Config(
       _lastPartitionCol = lastPartitionCol,
       _mergeKeys = mergeKeys,
       _primaryKey = primary_key,
+      _parentKey = parent_key,
       _whereClause = whereClause.toString
     )
   }

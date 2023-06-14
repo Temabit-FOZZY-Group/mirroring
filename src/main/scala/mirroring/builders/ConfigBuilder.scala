@@ -114,6 +114,7 @@ object ConfigBuilder extends LogSupport {
       timezone = arguments("timezone"),
       isChangeTrackingEnabled = arguments("change_tracking").toBoolean,
       _primaryKey = arguments("primary_key"),
+      _parentKey = arguments("parent_key"),
       _zOrderByCol = arguments("zorderby_col"),
       logLvl = arguments("log_lvl"),
       logSparkLvl = arguments("log_spark_lvl"),

@@ -23,6 +23,7 @@ case class WriterContext(
     private val _lastPartitionCol: String,
     private val _mergeKeys: Array[String],
     private val _primaryKey: Array[String],
+    private val _parentKey: Array[String],
     private val _whereClause: String,
     var _ctCurrentVersion: Option[BigInt] = None
 ) {
@@ -33,6 +34,7 @@ case class WriterContext(
   val lastPartitionCol: String      = _lastPartitionCol
   val mergeKeys: Array[String]      = _mergeKeys
   val primaryKey: Array[String]     = _primaryKey
+  val parentKey: Array[String]     = _parentKey
   val whereClause: String           = _whereClause
   lazy val ctCurrentVersion: BigInt = _ctCurrentVersion.get
 

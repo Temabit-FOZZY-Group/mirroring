@@ -20,7 +20,7 @@ import io.delta.tables.DeltaTable
 import mirroring.builders.FilterBuilder
 import mirroring.config.{Config, UserMetadata}
 import mirroring.services.SparkContextTrait
-import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
+import org.apache.spark.sql.{Column, DataFrame, DataFrameWriter, Row}
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.Logger
 
@@ -48,36 +48,43 @@ class ChangeTrackingService(
       logger.info("Target table already exists. Merging data...")
       verifySchemaMatch(data)
 
-      spark.conf.set(
+      this.getSparkSession.conf.set(
         "spark.databricks.delta.commitInfo.userMetadata",
         userMetadataJSON
       )
 
-      val condition = FilterBuilder.buildMergeCondition(
-        context.primaryKey,
-        sourceColPrefix = sourceColPrefix,
-        ds = data,
-        partitionCol = context.lastPartitionCol,
-        partitionColPrefix =
-          if (context.primaryKey.contains(context.lastPartitionCol)) sourceColPrefix else ""
-      )
-
-      DeltaTable
-        .forPath(spark, context.path)
-        .as(Config.TargetAlias)
-        .merge(data.as(Config.SourceAlias), condition)
-        .whenMatched(s"$deleteCondition")
-        .delete()
-        .whenMatched(s"$updateCondition")
-        .updateAll()
-        .whenNotMatched(s"$insertCondition")
-        .insertAll()
-        .execute()
+      deleteRows(data)
+      upsertRows(data)
 
     } else {
       logger.info("Target table doesn't exist yet. Initializing table...")
       super.write(data)
     }
+  }
+
+  private def upsertRows(data: DataFrame) = {
+    val updOperations = data.as(Config.SourceAlias).where(insertCondition)
+
+    val condition = FilterBuilder.buildMergeCondition(
+      context.primaryKey,
+      sourceColPrefix = sourceColPrefix,
+      ds = updOperations,
+      partitionCol = context.lastPartitionCol,
+      partitionColPrefix =
+        if (context.primaryKey.contains(context.lastPartitionCol)) sourceColPrefix else ""
+    )
+
+    DeltaTable
+      .forPath(this.getSparkSession, context.path)
+      .as(Config.TargetAlias)
+      .merge(updOperations.as(Config.SourceAlias), condition)
+      .whenMatched(s"$deleteCondition")
+      .delete()
+      .whenMatched(s"$updateCondition")
+      .updateAll()
+      .whenNotMatched(s"$insertCondition")
+      .insertAll()
+      .execute()
   }
 
   override def dfWriter(data: DataFrame): DataFrameWriter[Row] = {
@@ -100,5 +107,48 @@ class ChangeTrackingService(
 
   override def getUserMetadataJSON: String = {
     userMetadataJSON
+  }
+
+  private def deleteRows(data: DataFrame): Unit = {
+    var deleteOperations = data
+      .as(Config.SourceAlias)
+      .where(deleteCondition)
+      .select(context.primaryKey.map(x => new Column(s"$sourceColPrefix$x")): _*)
+
+    for (name <- deleteOperations.columns) {
+      deleteOperations = deleteOperations.withColumnRenamed(name, name.replace(sourceColPrefix, ""))
+    }
+    val joinCondition = FilterBuilder.buildMergeCondition(
+      context.primaryKey,
+      ds = null
+    )
+    val existingData = this.getSparkSession.read
+      .format("delta")
+      .load(context.path)
+      .select(context.primaryKey.map(x => new Column(x)): _*)
+
+    val rowsToDelete = existingData
+      .alias(Config.TargetAlias)
+      .join(
+        deleteOperations.alias(Config.SourceAlias),
+        context.parentKey,
+        "leftsemi"
+      )
+      .join(
+        deleteOperations.alias(Config.SourceAlias),
+        context.primaryKey,
+        "left_anti"
+      )
+
+    DeltaTable
+      .forPath(this.getSparkSession, context.path)
+      .as(Config.TargetAlias)
+      .merge(
+        rowsToDelete.as(Config.SourceAlias),
+        joinCondition
+      )
+      .whenMatched()
+      .delete()
+      .execute()
   }
 }
