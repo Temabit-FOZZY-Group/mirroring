@@ -38,7 +38,12 @@ class ChangeTrackingService(
     s"${Config.SourceAlias}.SYS_CHANGE_OPERATION in ('I', 'U')"
   private val sourceColPrefix = "SYS_CHANGE_PK_"
   private val excludeColumns =
-    context.primaryKey.map(col => s"$sourceColPrefix$col") :+ "SYS_CHANGE_OPERATION"
+    Array
+      .concat(
+        context.primaryKey.map(col => s"$sourceColPrefix$col"),
+        context.parentKey.map(col => s"$sourceColPrefix$col")
+      )
+      .distinct :+ "SYS_CHANGE_OPERATION"
   val userMetadataJSON: String = generateUserMetadataJSON(context.ctCurrentVersion)
 
   override def write(data: DataFrame): Unit = {
@@ -110,10 +115,11 @@ class ChangeTrackingService(
   }
 
   private def deleteRows(data: DataFrame): Unit = {
+    val keys: Array[Column] = excludeColumns.map(x => new Column(s"${Config.SourceAlias}.$x"))
     var deleteOperations = data
       .as(Config.SourceAlias)
       .where(deleteCondition)
-      .select(context.primaryKey.map(x => new Column(s"$sourceColPrefix$x")): _*)
+      .select(keys: _*)
 
     for (name <- deleteOperations.columns) {
       deleteOperations = deleteOperations.withColumnRenamed(name, name.replace(sourceColPrefix, ""))
@@ -125,7 +131,8 @@ class ChangeTrackingService(
     val existingData = this.getSparkSession.read
       .format("delta")
       .load(context.path)
-      .select(context.primaryKey.map(x => new Column(x)): _*)
+      .as(Config.SourceAlias)
+      .select(keys.map(x => new Column(x.toString().replace(sourceColPrefix, ""))): _*)
 
     val rowsToDelete = existingData
       .alias(Config.TargetAlias)
