@@ -37,13 +37,14 @@ class ChangeTrackingService(
   private val insertCondition =
     s"${Config.SourceAlias}.SYS_CHANGE_OPERATION in ('I', 'U')"
   private val sourceColPrefix = "SYS_CHANGE_PK_"
+  private val keysCombined = Array
+    .concat(
+      context.primaryKey,
+      context.parentKey
+    )
+    .distinct
   private val excludeColumns =
-    Array
-      .concat(
-        context.primaryKey.map(col => s"$sourceColPrefix$col"),
-        context.parentKey.map(col => s"$sourceColPrefix$col")
-      )
-      .distinct :+ "SYS_CHANGE_OPERATION"
+    keysCombined.map(col => s"$sourceColPrefix$col") :+ "SYS_CHANGE_OPERATION"
   val userMetadataJSON: String = generateUserMetadataJSON(context.ctCurrentVersion)
 
   override def write(data: DataFrame): Unit = {
@@ -115,7 +116,8 @@ class ChangeTrackingService(
   }
 
   private def deleteRows(data: DataFrame): Unit = {
-    val keys: Array[Column] = excludeColumns.map(x => new Column(s"${Config.SourceAlias}.$x"))
+    val keys: Array[Column] =
+      keysCombined.map(x => new Column(s"${Config.SourceAlias}.$sourceColPrefix$x"))
     var deleteOperations = data
       .as(Config.SourceAlias)
       .where(deleteCondition)
@@ -132,7 +134,7 @@ class ChangeTrackingService(
       .format("delta")
       .load(context.path)
       .as(Config.SourceAlias)
-      .select(keys.map(x => new Column(x.toString().replace(sourceColPrefix, ""))): _*)
+      .select(keysCombined.map(x => new Column(s"${Config.SourceAlias}.$x")): _*)
 
     val rowsToDelete = existingData
       .alias(Config.TargetAlias)
