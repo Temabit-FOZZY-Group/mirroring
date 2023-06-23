@@ -26,7 +26,7 @@ import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogSupport
 
 class ChangeTrackingHandler(config: Config) extends LogSupport {
-  this: SparkContextTrait =>
+  this: JdbcCTService with SparkContextTrait =>
 
   private lazy val jdbcContext = config.getJdbcContext
 
@@ -34,6 +34,8 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
     logger.info(s"Querying current change tracking version from the source...")
     val version: BigInt = if (config.CTCurrentVersionQuery.isEmpty) {
       logger.info("Change Tracking: use default query to get CTCurrentVersion")
+
+
       JdbcCTService.getChangeTrackingVersion(
         query = ChangeTrackingBuilder.currentVersionQuery,
         jdbcContext = jdbcContext

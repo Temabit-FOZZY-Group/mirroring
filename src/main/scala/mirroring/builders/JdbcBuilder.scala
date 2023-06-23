@@ -16,7 +16,6 @@
 
 package mirroring.builders
 
-import mirroring.Runner.getSparkSession
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkContextTrait
 import mirroring.services.databases.JdbcContext
@@ -27,7 +26,7 @@ import wvlet.log.LogSupport
 
 import java.sql.{CallableStatement, Connection, ResultSet, ResultSetMetaData}
 
-object JdbcBuilder extends LogSupport {
+trait JdbcBuilder extends Serializable with LogSupport {
   this: SparkContextTrait =>
 
   def getResultSet(

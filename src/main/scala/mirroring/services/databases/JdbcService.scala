@@ -21,7 +21,7 @@ import org.apache.spark.sql.delta.implicits.stringEncoder
 import org.apache.spark.sql.{DataFrame, DataFrameReader}
 import wvlet.log.LogSupport
 
-class JdbcService(jdbcContext: JdbcContext) extends LogSupport {
+class JdbcService(jdbcContext: JdbcContext) extends Serializable with LogSupport {
   this: SparkContextTrait =>
 
   protected lazy val customSchema: String = getCustomSchema

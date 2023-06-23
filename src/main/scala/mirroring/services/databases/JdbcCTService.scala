@@ -26,22 +26,24 @@ import wvlet.log.LogSupport
 
 import java.sql.{Connection, DriverManager, ResultSet}
 
-object JdbcCTService extends LogSupport with SparkContextTrait {
+class JdbcCTService(jdbcContext: JdbcContext) extends Serializable with LogSupport {
+  this: JdbcBuilder with SparkContextTrait =>
 
-  def loadData(jdbcContext: JdbcContext): DataFrame = {
+  def loadData(): DataFrame = {
+
     class ConnectionManager extends JdbcRDD.ConnectionFactory {
       override def getConnection: Connection = {
         DriverManager.getConnection(jdbcContext.url)
       }
     }
     val connectionManager: ConnectionManager = new ConnectionManager
-    val params: Array[String] = JdbcBuilder.buildCTQueryParams(
+    val params: Array[String] = buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
       jdbcContext
     )
-    val resultSet: ResultSet = getSchema(jdbcContext, connectionManager)
+    val resultSet: ResultSet = getSchema(connectionManager)
     try {
-      val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
+      val schema: StructType = buildStructFromResultSet(resultSet)
       logger.debug(schema)
       logger.info("Executing procedure to create rdd...")
       val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
@@ -54,7 +56,7 @@ object JdbcCTService extends LogSupport with SparkContextTrait {
         r => JdbcRDD.resultSetToObjectArray(r)
       )
       logger.info("Building DataFrame from result set...")
-      JdbcBuilder.buildDataFrameFromRDD(
+      buildDataFrameFromRDD(
         myRDD.repartition(getSparkSession.conf.get("spark.sql.shuffle.partitions").toInt),
         schema
       )
@@ -67,12 +69,12 @@ object JdbcCTService extends LogSupport with SparkContextTrait {
     }
   }
 
-  private def getSchema(jdbcContext: JdbcContext, cm: JdbcRDD.ConnectionFactory): ResultSet = {
+  private def getSchema(cm: JdbcRDD.ConnectionFactory): ResultSet = {
     val maxValueParams: Array[String] = Array(Long.MaxValue.toString, Long.MaxValue.toString)
     val resultSet: ResultSet =
       try {
         logger.info("Executing procedure with Long.MaxValue to get schema...")
-        JdbcBuilder.getResultSet(
+        getResultSet(
           cm.getConnection,
           jdbcContext.ctChangesQuery,
           maxValueParams
@@ -91,18 +93,14 @@ object JdbcCTService extends LogSupport with SparkContextTrait {
     *
     * Use to get Change Tracking version from the result set.
     */
-  def getChangeTrackingVersion(
-      query: String,
-      parameters: Array[String],
-      jdbcContext: JdbcContext
-  ): BigInt = {
+  def getChangeTrackingVersion(query: String, parameters: Array[String]): BigInt = {
     val connection = DriverManager.getConnection(jdbcContext.url)
     try {
-      val params: Array[String] = JdbcBuilder.buildCTQueryParams(
+      val params: Array[String] = buildCTQueryParams(
         parameters,
         jdbcContext
       )
-      val rs = JdbcBuilder.getResultSet(
+      val rs = getResultSet(
         connection,
         query,
         params
@@ -118,7 +116,7 @@ object JdbcCTService extends LogSupport with SparkContextTrait {
     }
   }
 
-  def getChangeTrackingVersion(query: String, jdbcContext: JdbcContext): BigInt = {
+  def getChangeTrackingVersion(query: String): BigInt = {
     var version: BigInt = BigInt(0)
     try {
       version = getSparkSession.read

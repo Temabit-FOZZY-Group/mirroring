@@ -17,7 +17,7 @@
 package mirroring.config
 
 import wvlet.airframe.codec.MessageCodec
-import wvlet.log.LogFormatter.{IntelliJLogFormatter, SourceCodeLogFormatter, appendStackTrace}
+import wvlet.log.LogFormatter.appendStackTrace
 import wvlet.log.{LogFormatter, LogLevel, LogRecord, Logger}
 
 import java.text.SimpleDateFormat

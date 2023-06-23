@@ -1,0 +1,7 @@
+default: &default
+  jdbcUrl: "<url>"
+  pathToStorage: "<some path>"
+  schema: "dbo",
+  sourceTable: "some_table",
+  pathToSave: "path to save",
+  targetTable: "table to save"
