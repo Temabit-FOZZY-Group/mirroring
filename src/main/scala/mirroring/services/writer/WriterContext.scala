@@ -25,6 +25,7 @@ case class WriterContext(
     private val _primaryKey: Array[String],
     private val _parentKey: Array[String],
     private val _whereClause: String,
+    var _changeTrackingLastVersion: () => Option[BigInt],
     var _ctCurrentVersion: Option[BigInt] = None
 ) {
 
@@ -36,6 +37,7 @@ case class WriterContext(
   val primaryKey: Array[String]     = _primaryKey
   val parentKey: Array[String]      = _parentKey
   val whereClause: String           = _whereClause
+  lazy val ctLastVersion: BigInt    = _changeTrackingLastVersion().get
   lazy val ctCurrentVersion: BigInt = _ctCurrentVersion.get
 
 }

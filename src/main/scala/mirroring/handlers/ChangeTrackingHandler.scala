@@ -138,6 +138,7 @@ class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) {
       currentJdbcContext: JdbcContext
   ): Unit = {
     currentWriterContext._ctCurrentVersion = Some(ctCurrentVersion)
+    currentWriterContext._changeTrackingLastVersion = () => Some(changeTrackingLastVersion())
     currentJdbcContext._ctCurrentVersion = Some(ctCurrentVersion)
     currentJdbcContext._changeTrackingLastVersion = () => Some(changeTrackingLastVersion())
     if (isDeltaTableExists) {

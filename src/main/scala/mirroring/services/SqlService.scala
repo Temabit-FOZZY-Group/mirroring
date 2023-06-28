@@ -53,7 +53,7 @@ object SqlService extends LogSupport with SparkContextTrait {
           config.logRetentionDuration,
           config.deletedFileRetentionDuration
         )
-        if (config.isChangeTrackingEnabled) {
+        if (config.isChangeTrackingEnabled || config.isObjectMirroringEnabled) {
           spark.conf.set(
             "spark.databricks.delta.commitInfo.userMetadata",
             userMetadataJSON

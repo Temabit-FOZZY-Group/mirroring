@@ -58,6 +58,7 @@ case class Config(
     forcePartition: Boolean,
     timezone: String,
     isChangeTrackingEnabled: Boolean,
+    isObjectMirroringEnabled: Boolean,
     private val _primaryKey: String,
     private val _parentKey: String,
     private val _zOrderByCol: String,
@@ -143,13 +144,20 @@ case class Config(
   )
 
   require(
-    isChangeTrackingEnabled ^ primary_key.length == 0,
-    s"Parameter `primary_key` should be specified if `isChangeTrackingEnabled` is true."
+    (isChangeTrackingEnabled || isObjectMirroringEnabled) ^ primary_key.length == 0,
+    s"Parameter `primary_key` should be specified if `change_tracking` or `object_mirroring` is true."
   )
 
   require(
-    CTChangesQuery.nonEmpty ^ parent_key.length == 0,
-    s"Parameters `parent_key` and `ct_changes_query` should be both specified or neither."
+    if (isObjectMirroringEnabled) {
+      CTChangesQuery.nonEmpty
+    } else { true },
+    s"Parameters `ct_changes_query` should be specified if `object_mirroring` is true."
+  )
+
+  require(
+    isObjectMirroringEnabled ^ parent_key.length == 0,
+    s"Parameters `parent_key` should be specified if `object_mirroring` is true."
   )
 
   val whereClause = new mutable.StringBuilder("1=1")
@@ -207,7 +215,8 @@ case class Config(
       _mergeKeys = mergeKeys,
       _primaryKey = primary_key,
       _parentKey = parent_key,
-      _whereClause = whereClause.toString
+      _whereClause = whereClause.toString,
+      _changeTrackingLastVersion = () => None
     )
   }
 
@@ -264,6 +273,7 @@ case class Config(
        |force_partition - $forcePartition,
        |timezone - $timezone,
        |change_tracking - $isChangeTrackingEnabled,
+       |object_mirroring - $isObjectMirroringEnabled,
        |primary_key - [${primary_key.mkString(", ")}],
        |zorderby_col - [${zorderby_col.mkString(", ")}],
        |log_lvl - $logLvl,
