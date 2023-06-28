@@ -34,7 +34,7 @@ case class WriterContext(
   val lastPartitionCol: String      = _lastPartitionCol
   val mergeKeys: Array[String]      = _mergeKeys
   val primaryKey: Array[String]     = _primaryKey
-  val parentKey: Array[String]     = _parentKey
+  val parentKey: Array[String]      = _parentKey
   val whereClause: String           = _whereClause
   lazy val ctCurrentVersion: BigInt = _ctCurrentVersion.get
 

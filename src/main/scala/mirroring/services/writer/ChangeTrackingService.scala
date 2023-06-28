@@ -77,7 +77,7 @@ class ChangeTrackingService(
       ds = updOperations,
       partitionCol = context.lastPartitionCol,
       partitionColPrefix =
-        if (context.primaryKey.contains(context.lastPartitionCol)) sourceColPrefix else ""
+        if (context.parentKey.contains(context.lastPartitionCol)) sourceColPrefix else ""
     )
 
     DeltaTable
@@ -116,45 +116,25 @@ class ChangeTrackingService(
   }
 
   private def deleteRows(data: DataFrame): Unit = {
-    val keys: Array[Column] =
-      keysCombined.map(x => new Column(s"${Config.SourceAlias}.$sourceColPrefix$x"))
     var deleteOperations = data
       .as(Config.SourceAlias)
       .where(deleteCondition)
-      .select(keys: _*)
 
-    for (name <- deleteOperations.columns) {
-      deleteOperations = deleteOperations.withColumnRenamed(name, name.replace(sourceColPrefix, ""))
-    }
-    val joinCondition = FilterBuilder.buildMergeCondition(
-      context.primaryKey,
-      ds = null
+    val condition = FilterBuilder.buildMergeCondition(
+      context.parentKey,
+      sourceColPrefix = sourceColPrefix,
+      ds = deleteOperations,
+      partitionCol = context.lastPartitionCol,
+      partitionColPrefix =
+        if (context.parentKey.contains(context.lastPartitionCol)) sourceColPrefix else ""
     )
-    val existingData = this.getSparkSession.read
-      .format("delta")
-      .load(context.path)
-      .as(Config.SourceAlias)
-      .select(keysCombined.map(x => new Column(s"${Config.SourceAlias}.$x")): _*)
-
-    val rowsToDelete = existingData
-      .alias(Config.TargetAlias)
-      .join(
-        deleteOperations.alias(Config.SourceAlias),
-        context.parentKey,
-        "leftsemi"
-      )
-      .join(
-        deleteOperations.alias(Config.SourceAlias),
-        context.primaryKey,
-        "left_anti"
-      )
 
     DeltaTable
       .forPath(this.getSparkSession, context.path)
       .as(Config.TargetAlias)
       .merge(
-        rowsToDelete.as(Config.SourceAlias),
-        joinCondition
+        deleteOperations.as(Config.SourceAlias),
+        condition
       )
       .whenMatched()
       .delete()
