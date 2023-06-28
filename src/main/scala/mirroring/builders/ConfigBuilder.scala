@@ -49,6 +49,7 @@ object ConfigBuilder extends LogSupport {
     "force_partition"                 -> "false",
     "change_tracking"                 -> "false",
     "primary_key"                     -> "",
+    "parent_key"                      -> "",
     "zorderby_col"                    -> "",
     "log_lvl"                         -> "info",
     "log_spark_lvl"                   -> "WARN",

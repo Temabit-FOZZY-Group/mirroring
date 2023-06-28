@@ -149,7 +149,7 @@ case class Config(
 
   require(
     CTChangesQuery.nonEmpty ^ parent_key.length == 0,
-    s"Parameter `parent_key` should be specified if custom CT is used."
+    s"Parameters `parent_key` and `ct_changes_query` should be both specified or neither."
   )
 
   val whereClause = new mutable.StringBuilder("1=1")
