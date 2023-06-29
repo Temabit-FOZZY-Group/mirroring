@@ -33,12 +33,10 @@ object Runner extends LogSupport {
 
   }
 
-  def initConfig(args: Array[String]): Config = {
-
+  private def initConfig(args: Array[String]): Config = {
     val config: Config = ConfigBuilder.build(ConfigBuilder.parse(args))
     logger.debug(s"Parameters parsed: ${config.toString}")
     config
-
   }
 
 }

@@ -16,6 +16,7 @@
 package mirroring
 
 import mirroring.builders.{ChangeTrackingBuilder, JdbcBuilder}
+import mirroring.localrunner.SparkContextTestTrait
 import mirroring.services.databases.JdbcContext
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -100,7 +101,9 @@ class ChangeTrackingBuilderSuite extends AnyFunSuite {
       _CTChangesQueryParams = CTChangesQueryParams,
       _changeTrackingLastVersion = () => Some(BigInt(2))
     )
-    val result = JdbcBuilder.buildCTQueryParams(CTChangesQueryParams, jdbcContext)
+
+    val jdbcBuilder = new JdbcBuilder with SparkContextTestTrait
+    val result = jdbcBuilder.buildCTQueryParams(CTChangesQueryParams, jdbcContext)
     assert(result sameElements Array("[schema].[tab]", "X", "1", "2"))
   }
 }

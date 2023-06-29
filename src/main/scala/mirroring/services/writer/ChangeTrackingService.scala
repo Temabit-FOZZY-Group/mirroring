@@ -43,6 +43,7 @@ class ChangeTrackingService(
   override def write(data: DataFrame): Unit = {
     val spark = this.getSparkSession
     if (DeltaTable.isDeltaTable(spark, context.path)) {
+      data.show(false)
       logger.info("Target table already exists. Merging data...")
       verifySchemaMatch(data)
 

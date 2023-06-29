@@ -18,7 +18,7 @@ package mirroring.services.databases
 
 import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.delta.implicits.stringEncoder
-import org.apache.spark.sql.{DataFrame, DataFrameReader}
+import org.apache.spark.sql.{DataFrame, DataFrameReader, Dataset}
 import wvlet.log.LogSupport
 
 class JdbcService(jdbcContext: JdbcContext) extends Serializable with LogSupport {
@@ -50,17 +50,28 @@ class JdbcService(jdbcContext: JdbcContext) extends Serializable with LogSupport
        |and DATA_TYPE IN ('date', 'datetime2')) as subq
        |""".stripMargin
 
-    val sourceSchema = executeQuery(getDateColumnsQuery).as[String]
+    val sourceSchema: Dataset[String] = executeQuery(getDateColumnsQuery).as[String]
 
     try {
-      val customSchema = sourceSchema.reduce(_ + ", " + _)
+      val customSchema = sourceSchema.reduce((accumulatedSting, strToAdd) =>
+        accumulatedSting + ", " + changeDatetime2ToTimestamp(strToAdd)
+      )
       logger.info(s"Reading data with customSchema: $customSchema")
-      customSchema.replaceAll("datetime2", "timestamp")
+      customSchema
     } catch {
       case e: java.lang.UnsupportedOperationException
           if e.getMessage.contains("empty collection") =>
         logger.info(s"No custom schema will be used")
         ""
+    }
+  }
+
+  private def changeDatetime2ToTimestamp(schemaField: String): String = {
+    if (schemaField.contains("datetime2")) {
+      val fieldNameAndType = schemaField.split(" ")
+      s"${fieldNameAndType(0)} ${fieldNameAndType(1).replace("datetime2", "timestamp")}"
+    } else {
+      schemaField
     }
   }
 

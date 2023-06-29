@@ -33,22 +33,24 @@ headerLicense := Some(
   )
 )
 name := "DeltaFlow"
-scalaVersion := "2.12.10"
-val sparkVersion = "3.3.2"
+scalaVersion := "2.12.15"
+val sparkVersion    = "3.3.2"
 val airframeVersion = "23.6.1"
+val deltaVersion    = "2.2.0"
 version := s"1.1.6-spark${sparkVersion}-scala${scalaVersion.value}"
 libraryDependencies ++= Seq(
-  "org.apache.spark"   %% "spark-core"         % sparkVersion % "provided",
-  "org.apache.spark"   %% "spark-sql"          % sparkVersion % "provided",
-  "org.apache.spark"   %% "spark-hive"         % sparkVersion % "provided",
-  "io.delta"           %% "delta-core"         % "2.2.0"      % "provided",
-  "org.wvlet.airframe" %% "airframe-log"       % airframeVersion,
-  "org.wvlet.airframe" %% "airframe-json"      % airframeVersion,
-  "org.wvlet.airframe" %% "airframe-codec"     % airframeVersion,
-  "org.wvlet.airframe" %% "airframe-config"    % airframeVersion,
-  "org.scalatest"      %% "scalatest"          % "3.2.14"     % "test",
-  "org.scalatest"      %% "scalatest-core"     % "3.2.13"     % "test",
-  "org.scalatest"      %% "scalatest-funsuite" % "3.2.13"     % "test"
+  "org.apache.spark"    %% "spark-core"         % sparkVersion % "provided",
+  "org.apache.spark"    %% "spark-sql"          % sparkVersion % "provided",
+  "org.apache.spark"    %% "spark-hive"         % sparkVersion % "provided",
+  "io.delta"            %% "delta-core"         % deltaVersion % "provided",
+  "org.wvlet.airframe"  %% "airframe-log"       % airframeVersion,
+  "org.wvlet.airframe"  %% "airframe-json"      % airframeVersion,
+  "org.wvlet.airframe"  %% "airframe-codec"     % airframeVersion,
+  "org.wvlet.airframe"  %% "airframe-config"    % airframeVersion,
+  "org.scalatest"       %% "scalatest"          % "3.2.14"     % "test",
+  "org.scalatest"       %% "scalatest-core"     % "3.2.13"     % "test",
+  "org.scalatest"       %% "scalatest-funsuite" % "3.2.13"     % "test",
+  "net.sourceforge.jtds" % "jtds"               % "1.3.1"      % "test"
 )
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
