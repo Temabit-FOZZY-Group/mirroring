@@ -15,30 +15,26 @@
  */
 package mirroring.localrunner
 
-import com.sun.org.apache.bcel.internal.classfile.JavaClass
 import mirroring.builders.ConfigBuilder
-import wvlet.airframe.config.Config
 import mirroring.config.{FlowLogger, Config => AppConfig}
 import mirroring.services.MirroringManager
+import wvlet.airframe.config.Config
 
 object LocalRunner {
 
   // Set env variable for "MSSQL_USER" and "MSSQL_PASSWORD" before running
   def main(args: Array[String]): Unit = {
+
     FlowLogger.init()
-    val config: Config = Config().registerFromYaml[TestConfig]("test-config.yaml")
-    val testConfig = config.of[TestConfig]
+    val config: Config       = Config().registerFromYaml[TestConfig]("test-config.yaml")
+    val testConfig           = config.of[TestConfig]
     val applicationArguments = testConfig.getApplicationArguments
 
-    println(applicationArguments.mkString(" "))
-
     val appConfig: AppConfig = ConfigBuilder.build(ConfigBuilder.parse(applicationArguments))
-    println(appConfig.toString)
 
     val mirroringManager = new MirroringManager() with SparkContextTestTrait
     mirroringManager.startDataMirroring(appConfig)
 
   }
-
 
 }

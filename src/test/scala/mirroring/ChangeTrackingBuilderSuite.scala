@@ -103,7 +103,7 @@ class ChangeTrackingBuilderSuite extends AnyFunSuite {
     )
 
     val jdbcBuilder = new JdbcBuilder with SparkContextTestTrait
-    val result = jdbcBuilder.buildCTQueryParams(CTChangesQueryParams, jdbcContext)
+    val result      = jdbcBuilder.buildCTQueryParams(CTChangesQueryParams, jdbcContext)
     assert(result sameElements Array("[schema].[tab]", "X", "1", "2"))
   }
 }

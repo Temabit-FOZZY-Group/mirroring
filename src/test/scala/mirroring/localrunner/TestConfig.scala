@@ -25,30 +25,31 @@ case class TestConfig(
     whereClause: String,
     query: String,
     changeTrackingEnabled: String,
-    primaryKey: String,
+    primaryKey: String
 )
 
 object TestConfig {
 
   val argumentAliasMap: Map[String, String] = Map(
-    "jdbcUrl" -> "jdbcUrl",
-    "schema" -> "schema",
-    "sourceTable" -> "tab",
-    "pathToSave" -> "path_to_save",
-    "whereClause" -> "where",
-    "query" -> "query",
+    "jdbcUrl"               -> "jdbcUrl",
+    "schema"                -> "schema",
+    "sourceTable"           -> "tab",
+    "pathToSave"            -> "path_to_save",
+    "whereClause"           -> "where",
+    "query"                 -> "query",
     "changeTrackingEnabled" -> "change_tracking",
-    "primaryKey" -> "primary_key",
+    "primaryKey"            -> "primary_key"
   )
   implicit class EnrichedTestConfig(testConfig: TestConfig) {
     def getApplicationArguments: Array[String] = {
-      val configMap = Extraction.decompose(testConfig)(DefaultFormats)
+      val configMap = Extraction
+        .decompose(testConfig)(DefaultFormats)
         .values
         .asInstanceOf[Map[String, String]]
 
       val args = configMap
         .filter(_._2.nonEmpty)
-        .map { case (fieldName, fieldValue) => s"${getArgumentAlias(fieldName)}==$fieldValue"}
+        .map { case (fieldName, fieldValue) => s"${getArgumentAlias(fieldName)}==$fieldValue" }
         .toArray
 
       args
