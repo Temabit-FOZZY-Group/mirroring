@@ -53,9 +53,7 @@ class JdbcService(jdbcContext: JdbcContext) extends Serializable with LogSupport
     val sourceSchema: Dataset[String] = executeQuery(getDateColumnsQuery).as[String]
 
     try {
-      val customSchema = sourceSchema.reduce((accumulatedSting, strToAdd) =>
-        accumulatedSting + ", " + changeDatetime2ToTimestamp(strToAdd)
-      )
+      val customSchema = sourceSchema.map(changeDatetime2ToTimestamp).reduce(_ + ", " + _)
       logger.info(s"Reading data with customSchema: $customSchema")
       customSchema
     } catch {
