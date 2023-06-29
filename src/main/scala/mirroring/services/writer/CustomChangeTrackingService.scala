@@ -24,7 +24,7 @@ import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogSupport
 
-class ObjectMirroringService(
+class CustomChangeTrackingService(
     context: WriterContext
 ) extends DeltaService(context)
     with LogSupport {

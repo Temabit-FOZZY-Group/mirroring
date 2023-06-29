@@ -58,7 +58,7 @@ case class Config(
     forcePartition: Boolean,
     timezone: String,
     isChangeTrackingEnabled: Boolean,
-    isObjectMirroringEnabled: Boolean,
+    isCustomCTEnabled: Boolean,
     private val _primaryKey: String,
     private val _parentKey: String,
     private val _zOrderByCol: String,
@@ -144,20 +144,20 @@ case class Config(
   )
 
   require(
-    (isChangeTrackingEnabled || isObjectMirroringEnabled) ^ primary_key.length == 0,
-    s"Parameter `primary_key` should be specified if `change_tracking` or `object_mirroring` is true."
+    (isChangeTrackingEnabled || isCustomCTEnabled) ^ primary_key.length == 0,
+    s"Parameter `primary_key` should be specified if `change_tracking` or `custom_ct` is true."
   )
 
   require(
-    if (isObjectMirroringEnabled) {
+    if (isCustomCTEnabled) {
       CTChangesQuery.nonEmpty
     } else { true },
-    s"Parameters `ct_changes_query` should be specified if `object_mirroring` is true."
+    s"Parameters `ct_changes_query` should be specified if `custom_ct` is true."
   )
 
   require(
-    isObjectMirroringEnabled ^ parent_key.length == 0,
-    s"Parameters `parent_key` should be specified if `object_mirroring` is true."
+    isCustomCTEnabled ^ parent_key.length == 0,
+    s"Parameters `parent_key` should be specified if `custom_ct` is true."
   )
 
   val whereClause = new mutable.StringBuilder("1=1")
@@ -273,7 +273,7 @@ case class Config(
        |force_partition - $forcePartition,
        |timezone - $timezone,
        |change_tracking - $isChangeTrackingEnabled,
-       |object_mirroring - $isObjectMirroringEnabled,
+       |object_mirroring - $isCustomCTEnabled,
        |primary_key - [${primary_key.mkString(", ")}],
        |zorderby_col - [${zorderby_col.mkString(", ")}],
        |log_lvl - $logLvl,

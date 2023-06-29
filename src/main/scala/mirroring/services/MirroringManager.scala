@@ -26,9 +26,9 @@ import mirroring.services.databases.{
 }
 import mirroring.services.writer.{
   ChangeTrackingService,
+  CustomChangeTrackingService,
   DeltaService,
   MergeService,
-  ObjectMirroringService,
   WriterContext
 }
 import org.apache.spark.sql.DataFrame
@@ -84,11 +84,11 @@ class MirroringManager {
       getJdbcChangeTrackingService(config)
     ) with SparkContextTrait
 
-    val isDeltaTableExists: Boolean =
+    lazy val isDeltaTableExists: Boolean =
       DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
 
     def getQuery: String = {
-      if (config.isChangeTrackingEnabled || config.isObjectMirroringEnabled) {
+      if (config.isChangeTrackingEnabled || config.isCustomCTEnabled) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
         changeTrackingHandler.query(isDeltaTableExists)
       } else {
@@ -98,7 +98,7 @@ class MirroringManager {
 
     val jdbcDF: DataFrame =
       if (
-        (config.isChangeTrackingEnabled || config.isObjectMirroringEnabled) && isDeltaTableExists && config.CTChangesQuery.nonEmpty
+        (config.isChangeTrackingEnabled || config.isCustomCTEnabled) && isDeltaTableExists && config.CTChangesQuery.nonEmpty
       ) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
         logger.info("Change Tracking: use custom ctChangesQuery")
@@ -124,8 +124,8 @@ class MirroringManager {
   }
 
   private def getWriteService(config: Config, writerContext: WriterContext) = {
-    if (config.isObjectMirroringEnabled) {
-      new ObjectMirroringService(writerContext) with SparkContextTrait
+    if (config.isCustomCTEnabled) {
+      new CustomChangeTrackingService(writerContext) with SparkContextTrait
     } else if (config.isChangeTrackingEnabled) {
       new ChangeTrackingService(writerContext) with SparkContextTrait
     } else if (config.useMerge) {
