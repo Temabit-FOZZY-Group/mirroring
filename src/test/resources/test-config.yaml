@@ -1,7 +1,7 @@
 default: &default
-  jdbcUrl: "jdbc:jtds:sqlserver://sfpv-sqls090.fz.fozzy.lan;domain=officekiev.fozzy.lan;useNTLMv2=true;databasename=HiveLLP;"
-  schema: "dbo"
-  sourceTable: "VS_ct_test2"
-  pathToSave: "palefat-internal-data/vl_orlov"
-  changeTrackingEnabled: "true"
-  primaryKey: "id"
+  jdbcUrl: "<url>"
+  schema: "<schema name>"
+  sourceTable: "<table name>"
+  pathToSave: "<path to save>"
+  changeTrackingEnabled: "false"
+  primaryKey: ""
