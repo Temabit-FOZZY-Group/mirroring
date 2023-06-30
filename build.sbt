@@ -33,7 +33,7 @@ headerLicense := Some(
   )
 )
 name := "DeltaFlow"
-scalaVersion := "2.12.15"
+scalaVersion := "2.12.10"
 val sparkVersion    = "3.3.2"
 val airframeVersion = "23.6.1"
 val deltaVersion    = "2.2.0"
