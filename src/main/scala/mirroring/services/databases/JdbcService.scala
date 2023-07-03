@@ -19,12 +19,13 @@ package mirroring.services.databases
 import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.delta.implicits.stringEncoder
 import org.apache.spark.sql.{DataFrame, DataFrameReader, Dataset}
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
-class JdbcService(jdbcContext: JdbcContext) extends Serializable with LogSupport {
+class JdbcService(jdbcContext: JdbcContext) extends Serializable {
   this: SparkContextTrait =>
 
   protected lazy val customSchema: String = getCustomSchema
+  private val logger = Logger.of[JdbcService]
 
   def loadData(query: String): DataFrame = {
     logger.info(s"Reading data with query: ${query.linesIterator.mkString(" ").trim}")

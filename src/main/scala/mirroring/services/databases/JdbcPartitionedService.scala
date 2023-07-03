@@ -19,12 +19,14 @@ package mirroring.services.databases
 import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, date_format, date_trunc}
-import wvlet.log.LogSupport
+import wvlet.log.{LogSupport, Logger}
 
 import scala.collection.mutable
 
-class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) with LogSupport {
+class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) {
   this: SparkContextTrait =>
+
+  private val logger = Logger.of[JdbcPartitionedService]
 
   private lazy val options: mutable.Map[String, String] = {
     var options = mutable.Map[String, String]()

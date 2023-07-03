@@ -26,10 +26,12 @@ import mirroring.services.databases.{
 }
 import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
 import org.apache.spark.sql.DataFrame
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
-class MirroringManager extends LogSupport {
+class MirroringManager {
   this: SparkContextTrait =>
+
+  private val logger = Logger.of[MirroringManager]
 
   def startDataMirroring(config: Config): Unit = {
 

@@ -16,18 +16,20 @@
 
 package mirroring.services.databases
 import mirroring.builders._
-import mirroring.services.SparkContextTrait
+import mirroring.services.{MirroringManager, SparkContextTrait}
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.delta.implicits.longEncoder
 import org.apache.spark.sql.types.StructType
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
 import java.sql.{Connection, DriverManager, ResultSet}
 
-class JdbcCTService(jdbcContext: JdbcContext) extends Serializable with LogSupport {
+class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
   this: JdbcBuilder with SparkContextTrait =>
+
+  val logger: Logger = Logger.of[JdbcCTService]
 
   def loadData(): DataFrame = {
 
