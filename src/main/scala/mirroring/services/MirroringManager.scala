@@ -31,7 +31,7 @@ import wvlet.log.Logger
 class MirroringManager {
   this: SparkContextTrait =>
 
-  private val logger = Logger.of[MirroringManager]
+  val logger: Logger = Logger.of[MirroringManager]
 
   def startDataMirroring(config: Config): Unit = {
 

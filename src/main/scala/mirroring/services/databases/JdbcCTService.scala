@@ -16,7 +16,7 @@
 
 package mirroring.services.databases
 import mirroring.builders._
-import mirroring.services.{MirroringManager, SparkContextTrait}
+import mirroring.services.SparkContextTrait
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.DataFrame
@@ -29,7 +29,7 @@ import java.sql.{Connection, DriverManager, ResultSet}
 class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
   this: JdbcBuilder with SparkContextTrait =>
 
-  val logger: Logger = Logger.of[JdbcCTService]
+  val log: Logger = Logger.of[JdbcCTService]
 
   def loadData(): DataFrame = {
 
@@ -46,8 +46,8 @@ class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
     val resultSet: ResultSet = getSchema(connectionManager)
     try {
       val schema: StructType = buildStructFromResultSet(resultSet)
-      logger.debug(schema)
-      logger.info("Executing procedure to create rdd...")
+      log.debug(schema)
+      log.info("Executing procedure to create rdd...")
       val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
         getSparkSession.sparkContext,
         connectionManager,
@@ -57,14 +57,14 @@ class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
         1,
         r => JdbcRDD.resultSetToObjectArray(r)
       )
-      logger.info("Building DataFrame from result set...")
+      log.info("Building DataFrame from result set...")
       buildDataFrameFromRDD(
         myRDD.repartition(getSparkSession.conf.get("spark.sql.shuffle.partitions").toInt),
         schema
       )
     } catch {
       case e: Exception =>
-        logger.error(
+        log.error(
           s"Error executing ${jdbcContext.ctChangesQuery} with params: ${params.mkString(", ")}"
         )
         throw e
@@ -75,7 +75,7 @@ class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
     val maxValueParams: Array[String] = Array(Long.MaxValue.toString, Long.MaxValue.toString)
     val resultSet: ResultSet =
       try {
-        logger.info("Executing procedure with Long.MaxValue to get schema...")
+        log.info("Executing procedure with Long.MaxValue to get schema...")
         getResultSet(
           cm.getConnection,
           jdbcContext.ctChangesQuery,
@@ -83,7 +83,7 @@ class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
         )
       } catch {
         case e: Exception =>
-          logger.error(
+          log.error(
             s"Error executing ${jdbcContext.ctChangesQuery} with params: ${maxValueParams.mkString(", ")}"
           )
           throw e
@@ -111,7 +111,7 @@ class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
       rs.getLong(1)
     } catch {
       case e: Exception =>
-        logger.error(s"Error getting Change Tracking version using query $query")
+        log.error(s"Error getting Change Tracking version using query $query")
         throw e
     } finally {
       connection.close()
@@ -130,7 +130,7 @@ class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
         .first()
     } catch {
       case e: java.lang.NullPointerException =>
-        logger.error(s"Change tracking is not enabled on queried table: $query")
+        log.error(s"Change tracking is not enabled on queried table: $query")
         throw e
     }
     version

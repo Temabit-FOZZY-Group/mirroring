@@ -23,12 +23,12 @@ import mirroring.services.SparkContextTrait
 import mirroring.services.databases.{JdbcCTService, JdbcContext}
 import mirroring.services.writer.WriterContext
 import wvlet.airframe.codec.MessageCodec
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
-class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) extends LogSupport {
+class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) {
   this: SparkContextTrait =>
 
-//  private lazy val jdbcContext = config.getJdbcContext
+  val logger: Logger = Logger.of[ChangeTrackingHandler]
 
   lazy val ctCurrentVersion: BigInt = {
     logger.info(s"Querying current change tracking version from the source...")

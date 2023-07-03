@@ -19,12 +19,14 @@ package mirroring.services.writer
 import io.delta.tables.DeltaTable
 import mirroring.builders.FilterBuilder
 import mirroring.config.Config
-import mirroring.services.SparkContextTrait
+import mirroring.services.{MirroringManager, SparkContextTrait}
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
-class MergeService(context: WriterContext) extends DeltaService(context) with LogSupport {
+class MergeService(context: WriterContext) extends DeltaService(context) {
   this: SparkContextTrait =>
+
+  override val logger: Logger = Logger.of[MergeService]
 
   override def write(data: DataFrame): Unit = {
     if (DeltaTable.isDeltaTable(this.getSparkSession, context.path)) {

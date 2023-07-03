@@ -19,14 +19,14 @@ package mirroring.services.databases
 import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, date_format, date_trunc}
-import wvlet.log.{LogSupport, Logger}
+import wvlet.log.Logger
 
 import scala.collection.mutable
 
 class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) {
   this: SparkContextTrait =>
 
-  private val logger = Logger.of[JdbcPartitionedService]
+  override val logger: Logger = Logger.of[JdbcPartitionedService]
 
   private lazy val options: mutable.Map[String, String] = {
     var options = mutable.Map[String, String]()
@@ -86,7 +86,7 @@ class JdbcPartitionedService(context: JdbcContext) extends JdbcService(context) 
       .load()
   }
 
-  def addDayPrecisionTimestamp(ds: DataFrame, columnName: String): DataFrame = {
+  private def addDayPrecisionTimestamp(ds: DataFrame, columnName: String): DataFrame = {
     if (columnHasTimestampType(ds, columnName)) {
       ds.withColumn(
         columnName,

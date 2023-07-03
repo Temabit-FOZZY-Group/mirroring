@@ -24,8 +24,9 @@ import wvlet.log.Logger
 class JdbcService(jdbcContext: JdbcContext) extends Serializable {
   this: SparkContextTrait =>
 
+  val logger: Logger = Logger.of[JdbcService]
+
   protected lazy val customSchema: String = getCustomSchema
-  private val logger = Logger.of[JdbcService]
 
   def loadData(query: String): DataFrame = {
     logger.info(s"Reading data with query: ${query.linesIterator.mkString(" ").trim}")
