@@ -36,12 +36,33 @@ class MirroringManager extends LogSupport {
     setSparkContext(config)
 
     val writerContext: WriterContext = config.getWriterContext
-    val jdbcDF: DataFrame            = loadDataFromSqlSource(config, writerContext)
+    val isDeltaTableExists: Boolean =
+      DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
+    val jdbcDF: DataFrame = loadDataFromSqlSource(config, writerContext, isDeltaTableExists)
 
     val sqlSourceData = DataframeBuilder().buildDataFrame(jdbcDF, config.getDataframeBuilderContext)
 
     val writerService = getWriteService(config, writerContext)
     writerService.write(sqlSourceData)
+
+    if (config.isChangeTrackingEnabled && config.mode == "append" && isDeltaTableExists) {
+      val pathAppend: String = s"${config.pathToSave}_ct_append"
+      logger.info(s"Append CT data as is into $pathAppend...")
+      val writerAppendContext = WriterContext(
+        _mode = config.mode,
+        _pathToSave = pathAppend,
+        _partitionCols = config.partitionCols,
+        _lastPartitionCol = config.lastPartitionCol,
+        _mergeKeys = config.mergeKeys,
+        _primaryKey = config.primary_key,
+        _whereClause = config.whereClause.toString
+      )
+      val writerAppendService = new DeltaService(writerAppendContext) with SparkContextTrait
+      writerAppendService.write(sqlSourceData)
+
+      val targetTableNameAppend = s"${config.targetTableName}_ct_append"
+      SqlService.createCtAppendTable(config.hiveDb, targetTableNameAppend, pathAppend)
+    }
 
     deltaPostProcessing(config, sqlSourceData, writerService.getUserMetadataJSON)
   }
@@ -68,16 +89,17 @@ class MirroringManager extends LogSupport {
     FlowLogger.init(loggerConfig)
   }
 
-  private def loadDataFromSqlSource(config: Config, writerContext: WriterContext): DataFrame = {
+  private def loadDataFromSqlSource(
+      config: Config,
+      writerContext: WriterContext,
+      isDeltaTableExists: Boolean
+  ): DataFrame = {
     val jdbcContext = config.getJdbcContext
 
     lazy val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(
       config,
       getJdbcChangeTrackingService(config)
     ) with SparkContextTrait
-
-    val isDeltaTableExists: Boolean =
-      DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
 
     def getQuery: String = {
       if (config.isChangeTrackingEnabled) {
