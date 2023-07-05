@@ -23,27 +23,25 @@ import mirroring.services.SparkContextTrait
 import mirroring.services.databases.{JdbcCTService, JdbcContext}
 import mirroring.services.writer.WriterContext
 import wvlet.airframe.codec.MessageCodec
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
-class ChangeTrackingHandler(config: Config) extends LogSupport {
+class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) {
   this: SparkContextTrait =>
 
-  private lazy val jdbcContext = config.getJdbcContext
+  val logger: Logger = Logger.of[ChangeTrackingHandler]
 
   lazy val ctCurrentVersion: BigInt = {
     logger.info(s"Querying current change tracking version from the source...")
     val version: BigInt = if (config.CTCurrentVersionQuery.isEmpty) {
       logger.info("Change Tracking: use default query to get CTCurrentVersion")
-      JdbcCTService.getChangeTrackingVersion(
-        query = ChangeTrackingBuilder.currentVersionQuery,
-        jdbcContext = jdbcContext
+      jdbcCTService.getChangeTrackingVersion(
+        query = ChangeTrackingBuilder.currentVersionQuery
       )
     } else {
       logger.info("Change Tracking: use custom CTCurrentVersionQuery")
-      JdbcCTService.getChangeTrackingVersion(
+      jdbcCTService.getChangeTrackingVersion(
         query = config.CTCurrentVersionQuery,
-        parameters = config.CTCurrentVersionParams,
-        jdbcContext = jdbcContext
+        parameters = config.CTCurrentVersionParams
       )
     }
     logger.info(s"Current CT version for the MSSQL table: $version")
@@ -56,16 +54,14 @@ class ChangeTrackingHandler(config: Config) extends LogSupport {
     )
     val version: BigInt = if (config.CTMinValidVersionQuery.isEmpty) {
       logger.info("Change Tracking: use default query to get ChangeTrackingMinValidVersion")
-      JdbcCTService.getChangeTrackingVersion(
-        query = ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab),
-        jdbcContext = jdbcContext
+      jdbcCTService.getChangeTrackingVersion(
+        query = ChangeTrackingBuilder.buildMinValidVersionQuery(config.schema, config.tab)
       )
     } else {
       logger.info("Change Tracking: use custom CTMinValidVersionQuery")
-      JdbcCTService.getChangeTrackingVersion(
+      jdbcCTService.getChangeTrackingVersion(
         query = config.CTMinValidVersionQuery,
-        parameters = config.CTMinValidVersionParams,
-        jdbcContext = jdbcContext
+        parameters = config.CTMinValidVersionParams
       )
     }
     logger.info(s"Min valid version for the MSSQL table: $version")

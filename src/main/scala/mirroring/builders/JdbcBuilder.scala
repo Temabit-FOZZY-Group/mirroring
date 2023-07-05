@@ -16,19 +16,20 @@
 
 package mirroring.builders
 
-import mirroring.Runner.getSparkSession
 import mirroring.builders.SqlBuilder.buildSQLObjectName
 import mirroring.services.SparkContextTrait
 import mirroring.services.databases.JdbcContext
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Row}
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
 import java.sql.{CallableStatement, Connection, ResultSet, ResultSetMetaData}
 
-object JdbcBuilder extends LogSupport {
+trait JdbcBuilder extends Serializable {
   this: SparkContextTrait =>
+
+  val logger: Logger = Logger.of[JdbcBuilder]
 
   def getResultSet(
       connection: Connection,

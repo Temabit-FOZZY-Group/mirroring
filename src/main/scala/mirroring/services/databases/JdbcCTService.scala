@@ -22,28 +22,32 @@ import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.delta.implicits.longEncoder
 import org.apache.spark.sql.types.StructType
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
 import java.sql.{Connection, DriverManager, ResultSet}
 
-object JdbcCTService extends LogSupport with SparkContextTrait {
+class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
+  this: JdbcBuilder with SparkContextTrait =>
 
-  def loadData(jdbcContext: JdbcContext): DataFrame = {
+  val log: Logger = Logger.of[JdbcCTService]
+
+  def loadData(): DataFrame = {
+
     class ConnectionManager extends JdbcRDD.ConnectionFactory {
       override def getConnection: Connection = {
         DriverManager.getConnection(jdbcContext.url)
       }
     }
     val connectionManager: ConnectionManager = new ConnectionManager
-    val params: Array[String] = JdbcBuilder.buildCTQueryParams(
+    val params: Array[String] = buildCTQueryParams(
       jdbcContext.ctChangesQueryParams,
       jdbcContext
     )
-    val resultSet: ResultSet = getSchema(jdbcContext, connectionManager)
+    val resultSet: ResultSet = getSchema(connectionManager)
     try {
-      val schema: StructType = JdbcBuilder.buildStructFromResultSet(resultSet)
-      logger.debug(schema)
-      logger.info("Executing procedure to create rdd...")
+      val schema: StructType = buildStructFromResultSet(resultSet)
+      log.debug(schema)
+      log.info("Executing procedure to create rdd...")
       val myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
         getSparkSession.sparkContext,
         connectionManager,
@@ -53,33 +57,33 @@ object JdbcCTService extends LogSupport with SparkContextTrait {
         1,
         r => JdbcRDD.resultSetToObjectArray(r)
       )
-      logger.info("Building DataFrame from result set...")
-      JdbcBuilder.buildDataFrameFromRDD(
+      log.info("Building DataFrame from result set...")
+      buildDataFrameFromRDD(
         myRDD.repartition(getSparkSession.conf.get("spark.sql.shuffle.partitions").toInt),
         schema
       )
     } catch {
       case e: Exception =>
-        logger.error(
+        log.error(
           s"Error executing ${jdbcContext.ctChangesQuery} with params: ${params.mkString(", ")}"
         )
         throw e
     }
   }
 
-  private def getSchema(jdbcContext: JdbcContext, cm: JdbcRDD.ConnectionFactory): ResultSet = {
+  private def getSchema(cm: JdbcRDD.ConnectionFactory): ResultSet = {
     val maxValueParams: Array[String] = Array(Long.MaxValue.toString, Long.MaxValue.toString)
     val resultSet: ResultSet =
       try {
-        logger.info("Executing procedure with Long.MaxValue to get schema...")
-        JdbcBuilder.getResultSet(
+        log.info("Executing procedure with Long.MaxValue to get schema...")
+        getResultSet(
           cm.getConnection,
           jdbcContext.ctChangesQuery,
           maxValueParams
         )
       } catch {
         case e: Exception =>
-          logger.error(
+          log.error(
             s"Error executing ${jdbcContext.ctChangesQuery} with params: ${maxValueParams.mkString(", ")}"
           )
           throw e
@@ -91,18 +95,14 @@ object JdbcCTService extends LogSupport with SparkContextTrait {
     *
     * Use to get Change Tracking version from the result set.
     */
-  def getChangeTrackingVersion(
-      query: String,
-      parameters: Array[String],
-      jdbcContext: JdbcContext
-  ): BigInt = {
+  def getChangeTrackingVersion(query: String, parameters: Array[String]): BigInt = {
     val connection = DriverManager.getConnection(jdbcContext.url)
     try {
-      val params: Array[String] = JdbcBuilder.buildCTQueryParams(
+      val params: Array[String] = buildCTQueryParams(
         parameters,
         jdbcContext
       )
-      val rs = JdbcBuilder.getResultSet(
+      val rs = getResultSet(
         connection,
         query,
         params
@@ -111,14 +111,14 @@ object JdbcCTService extends LogSupport with SparkContextTrait {
       rs.getLong(1)
     } catch {
       case e: Exception =>
-        logger.error(s"Error getting Change Tracking version using query $query")
+        log.error(s"Error getting Change Tracking version using query $query")
         throw e
     } finally {
       connection.close()
     }
   }
 
-  def getChangeTrackingVersion(query: String, jdbcContext: JdbcContext): BigInt = {
+  def getChangeTrackingVersion(query: String): BigInt = {
     var version: BigInt = BigInt(0)
     try {
       version = getSparkSession.read
@@ -130,7 +130,7 @@ object JdbcCTService extends LogSupport with SparkContextTrait {
         .first()
     } catch {
       case e: java.lang.NullPointerException =>
-        logger.error(s"Change tracking is not enabled on queried table: $query")
+        log.error(s"Change tracking is not enabled on queried table: $query")
         throw e
     }
     version

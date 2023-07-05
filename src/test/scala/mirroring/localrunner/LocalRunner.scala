@@ -13,30 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package mirroring
+package mirroring.localrunner
 
 import mirroring.builders.ConfigBuilder
-import mirroring.config.{Config, FlowLogger}
-import mirroring.services.{MirroringManager, SparkContextTrait}
-import wvlet.log.LogSupport
+import mirroring.config.{FlowLogger, Config => AppConfig}
+import mirroring.services.MirroringManager
+import wvlet.airframe.config.Config
 
-object Runner extends LogSupport {
+object LocalRunner {
 
+  // Set env variable for "MSSQL_USER" and "MSSQL_PASSWORD" before running
   def main(args: Array[String]): Unit = {
-    // preliminary FlowLogger initialization in order to log config building
+
     FlowLogger.init()
-    val config: Config = initConfig(args)
+    val config: Config       = Config().registerFromYaml[TestConfig]("test-config.yaml")
+    val testConfig           = config.of[TestConfig]
+    val applicationArguments = testConfig.getApplicationArguments
 
-    val mirroringManager = new MirroringManager() with SparkContextTrait
-    mirroringManager.startDataMirroring(config)
+    val appConfig: AppConfig = ConfigBuilder.build(ConfigBuilder.parse(applicationArguments))
 
-  }
+    val mirroringManager = new MirroringManager() with SparkContextTestTrait
+    mirroringManager.startDataMirroring(appConfig)
 
-  private def initConfig(args: Array[String]): Config = {
-    val config: Config = ConfigBuilder.build(ConfigBuilder.parse(args))
-    logger.debug(s"Parameters parsed: ${config.toString}")
-    config
   }
 
 }

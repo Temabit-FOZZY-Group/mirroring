@@ -37,7 +37,7 @@ class DataframeBuilderSuite extends AnyFunSuite {
         Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
       )
       .toDF("id", "date", "hour", "content")
-    val result = DataframeBuilder.renameColumns(df)
+    val result = DataframeBuilder().renameColumns(df)
     assert(
       result.schema.toDDL == "id INT NOT NULL,date STRING,hour STRING,content STRING"
     )
@@ -58,7 +58,7 @@ class DataframeBuilderSuite extends AnyFunSuite {
         Seq((1, "2019-10-05", "00", "A"), (2, "2019-10-05", "01", "B"))
       )
       .toDF("id:", "d(at)e", "ho*ur.", "cont ent")
-    val result = DataframeBuilder.renameColumns(df)
+    val result = DataframeBuilder().renameColumns(df)
     assert(
       result.schema.toDDL == "id__ INT NOT NULL,date STRING,`ho*ur__` STRING,cont__ent STRING"
     )
@@ -94,7 +94,7 @@ class DataframeBuilderSuite extends AnyFunSuite {
       generatedColumnType = "string",
       disablePlatformIngestedAt = false
     )
-    val resultDs = DataframeBuilder.buildDataFrame(df, context)
+    val resultDs = DataframeBuilder().buildDataFrame(df, context)
     val expectedSchema = Array(
       ("_platform_ingested_at", "TimestampType"),
       ("i__d", "IntegerType"),

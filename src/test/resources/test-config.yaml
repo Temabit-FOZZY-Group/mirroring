@@ -1,0 +1,7 @@
+default: &default
+  jdbcUrl: "<url>"
+  schema: "<schema name>"
+  sourceTable: "<table name>"
+  pathToSave: "<path to save>"
+  changeTrackingEnabled: "false"
+  primaryKey: ""

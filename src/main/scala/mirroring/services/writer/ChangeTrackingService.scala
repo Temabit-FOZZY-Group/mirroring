@@ -22,13 +22,14 @@ import mirroring.config.{Config, UserMetadata}
 import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import wvlet.airframe.codec.MessageCodec
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
 class ChangeTrackingService(
     context: WriterContext
-) extends DeltaService(context)
-    with LogSupport {
+) extends DeltaService(context) {
   this: SparkContextTrait =>
+
+  override val logger: Logger = Logger.of[ChangeTrackingService]
 
   private val deleteCondition =
     s"${Config.SourceAlias}.SYS_CHANGE_OPERATION = 'D'"
@@ -43,6 +44,7 @@ class ChangeTrackingService(
   override def write(data: DataFrame): Unit = {
     val spark = this.getSparkSession
     if (DeltaTable.isDeltaTable(spark, context.path)) {
+      data.show(false)
       logger.info("Target table already exists. Merging data...")
       verifySchemaMatch(data)
 

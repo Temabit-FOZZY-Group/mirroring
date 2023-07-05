@@ -16,13 +16,12 @@
 
 package mirroring.builders
 
-import mirroring.Runner.getSparkSession
 import mirroring.config.Config
 import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, current_timestamp, to_date, to_utc_timestamp}
 
-object DataframeBuilder {
+class DataframeBuilder extends Serializable {
   this: SparkContextTrait =>
 
   def renameColumns(jdbcDF: DataFrame): DataFrame = {
@@ -101,4 +100,8 @@ object DataframeBuilder {
     }
     res
   }
+}
+
+object DataframeBuilder {
+  def apply(): DataframeBuilder = new DataframeBuilder() with SparkContextTrait
 }
