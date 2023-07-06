@@ -98,11 +98,11 @@ class ChangeTrackingHandler(
       .collect()
 
     val codec = MessageCodec.of[UserMetadata]
-    val userMetadata: Array[Option[UserMetadata]] =
-      userMetaJSON.map(_.getString(0)).map { JSON =>
-        codec.unpackJson(JSON)
+    val userMetadata: Array[UserMetadata] =
+      userMetaJSON.map(_.getString(0)).flatMap { JSON =>
+        if (JSON == null) None else codec.unpackJson(JSON)
       }
-    val ChangeTrackingVersion: BigInt = userMetadata.map(_.get.ChangeTrackingVersion).max
+    val ChangeTrackingVersion: BigInt = userMetadata.map(_.ChangeTrackingVersion).max
     ChangeTrackingVersion
   }
 
@@ -148,9 +148,14 @@ class ChangeTrackingHandler(
         )
         ctMinValidVersion
       case e: org.apache.spark.sql.AnalysisException
-          if e.getMessage().endsWith("is not a Delta table.") =>
+          if e.getMessage.endsWith("is not a Delta table.") =>
         logger.warn(
-          s"${e.getMessage()} CHANGE_TRACKING_MIN_VALID_VERSION will be used."
+          s"${e.getMessage} CHANGE_TRACKING_MIN_VALID_VERSION will be used."
+        )
+        ctMinValidVersion
+      case e: java.lang.UnsupportedOperationException =>
+        logger.warn(
+          s"${e.getMessage} CHANGE_TRACKING_MIN_VALID_VERSION will be used."
         )
         ctMinValidVersion
     }
