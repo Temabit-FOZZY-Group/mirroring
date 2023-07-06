@@ -25,10 +25,11 @@ import mirroring.services.writer.WriterContext
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.LogSupport
 
-class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) extends LogSupport {
+class ChangeTrackingHandler(
+    config: Config,
+    jdbcCTService: JdbcCTService
+) extends LogSupport {
   this: SparkContextTrait =>
-
-//  private lazy val jdbcContext = config.getJdbcContext
 
   lazy val ctCurrentVersion: BigInt = {
     logger.info(s"Querying current change tracking version from the source...")
@@ -88,6 +89,23 @@ class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) extend
     }
   }
 
+  private lazy val ctAppendDeltaVersion: BigInt = {
+    val userMetaJSON = DeltaTable
+      .forPath(getSparkSession, config.pathToSave)
+      .history()
+      .where("operation <> 'OPTIMIZE'")
+      .select("userMetadata")
+      .collect()
+
+    val codec = MessageCodec.of[UserMetadata]
+    val userMetadata: Array[Option[UserMetadata]] =
+      userMetaJSON.map(_.getString(0)).map { JSON =>
+        codec.unpackJson(JSON)
+      }
+    val ChangeTrackingVersion: BigInt = userMetadata.map(_.get.ChangeTrackingVersion).max
+    ChangeTrackingVersion
+  }
+
   private lazy val primaryKeyOnClause: String = {
     FilterBuilder.buildJoinCondition(config.primary_key, "T", "CT")
   }
@@ -100,15 +118,25 @@ class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) extend
     primaryKeySelectClause = primaryKeySelectClause,
     schema = config.schema,
     sourceTable = config.tab,
-    changeTrackingLastVersion = changeTrackingLastVersion(),
+    changeTrackingLastVersion = changeTrackingLastVersion(false),
     primaryKeyOnClause = primaryKeyOnClause,
     ctCurrentVersion = ctCurrentVersion
   )
 
-  def changeTrackingLastVersion(): BigInt = {
+  private lazy val ctChangesAppendQuery: String = ChangeTrackingBuilder.buildSelectWithVersion(
+    primaryKeySelectClause = primaryKeySelectClause,
+    schema = config.schema,
+    sourceTable = config.tab,
+    changeTrackingLastVersion = changeTrackingLastVersion(true),
+    primaryKeyOnClause = primaryKeyOnClause,
+    ctCurrentVersion = ctCurrentVersion
+  )
+
+  def changeTrackingLastVersion(isCtAppendModeEnabled: Boolean): BigInt = {
     var changeTrackingLastVersion: BigInt = -1
     try {
-      changeTrackingLastVersion = ctDeltaVersion
+      changeTrackingLastVersion =
+        if (isCtAppendModeEnabled) ctAppendDeltaVersion else ctDeltaVersion
       logger.info(
         s"Last change tracking version extracted from the delta table: ${changeTrackingLastVersion.toString}"
       )
@@ -123,9 +151,9 @@ class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) extend
     }
   }
 
-  def query(isDeltaTableExists: Boolean): String = {
-    if (isDeltaTableExists) {
-      ctChangesQuery
+  def query(isDeltaTableExists: Boolean, ctAppendMode: Boolean): String = {
+    if (isDeltaTableExists || ctAppendMode) {
+      getCtChangesQuery(ctAppendMode)
     } else {
       logger.info("Target table doesn't exist yet. Reading data in full ...")
       s"(select * from [${config.schema}].[${config.tab}] with (nolock) where 1=1) as subq"
@@ -139,12 +167,18 @@ class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) extend
   ): Unit = {
     currentWriterContext._ctCurrentVersion = Some(ctCurrentVersion)
     currentJdbcContext._ctCurrentVersion = Some(ctCurrentVersion)
-    currentJdbcContext._changeTrackingLastVersion = () => Some(changeTrackingLastVersion())
+    currentJdbcContext._changeTrackingLastVersion = () =>
+      Some(changeTrackingLastVersion(currentWriterContext.isCtAppendModeEnabled))
     if (isDeltaTableExists) {
       require(
-        changeTrackingLastVersion() >= ctMinValidVersion,
+        changeTrackingLastVersion(currentWriterContext.isCtAppendModeEnabled) >= ctMinValidVersion,
         "Invalid Change Tracking version. Client table must be reinitialized."
       )
     }
   }
+
+  private def getCtChangesQuery(ctAppendMode: Boolean): String = {
+    if (ctAppendMode) ctChangesAppendQuery else ctChangesQuery
+  }
+
 }

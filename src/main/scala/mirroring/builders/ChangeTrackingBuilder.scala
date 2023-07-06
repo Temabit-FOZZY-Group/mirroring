@@ -44,6 +44,29 @@ object ChangeTrackingBuilder {
        |""".stripMargin
   }
 
+  def buildSelectWithVersion(
+      primaryKeySelectClause: String,
+      schema: String,
+      sourceTable: String,
+      changeTrackingLastVersion: BigInt,
+      primaryKeyOnClause: String,
+      ctCurrentVersion: BigInt
+  ): String = {
+    s"""(
+       |SELECT
+       |    T.*, CT.SYS_CHANGE_OPERATION, CT.SYS_CHANGE_VERSION, $primaryKeySelectClause
+       |FROM
+       |    [$schema].[$sourceTable] AS T WITH (FORCESEEK)
+       |RIGHT OUTER JOIN
+       |    CHANGETABLE(CHANGES [$schema].[$sourceTable], $changeTrackingLastVersion) AS CT
+       |ON
+       |    $primaryKeyOnClause
+       |WHERE
+       |    CT.SYS_CHANGE_VERSION <= $ctCurrentVersion
+       |) AS subq
+       |""".stripMargin
+  }
+
   def buildMinValidVersionQuery(schema: String, sourceTable: String): String = {
     s"""(SELECT CHANGE_TRACKING_MIN_VALID_VERSION(OBJECT_ID('$schema.$sourceTable'))
        | as CTver) as subq""".stripMargin

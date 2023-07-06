@@ -24,7 +24,8 @@ case class WriterContext(
     private val _mergeKeys: Array[String],
     private val _primaryKey: Array[String],
     private val _whereClause: String,
-    var _ctCurrentVersion: Option[BigInt] = None
+    var _ctCurrentVersion: Option[BigInt] = None,
+    private val _isCtAppendModeEnabled: Boolean
 ) {
 
   val mode: String                  = _mode
@@ -35,5 +36,6 @@ case class WriterContext(
   val primaryKey: Array[String]     = _primaryKey
   val whereClause: String           = _whereClause
   lazy val ctCurrentVersion: BigInt = _ctCurrentVersion.get
+  val isCtAppendModeEnabled         = _isCtAppendModeEnabled
 
 }

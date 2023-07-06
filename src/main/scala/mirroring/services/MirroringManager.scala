@@ -91,14 +91,16 @@ class MirroringManager extends LogSupport {
     def getQuery: String = {
       if (config.isChangeTrackingEnabled) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
-        changeTrackingHandler.query(isDeltaTableExists)
+        changeTrackingHandler.query(isDeltaTableExists, writerContext.isCtAppendModeEnabled)
       } else {
         config.query
       }
     }
 
     val jdbcDF: DataFrame =
-      if (config.isChangeTrackingEnabled && isDeltaTableExists && config.CTChangesQuery.nonEmpty) {
+      if (
+        config.isChangeTrackingEnabled && config.CTChangesQuery.nonEmpty && (isDeltaTableExists || writerContext.isCtAppendModeEnabled)
+      ) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
         logger.info("Change Tracking: use custom ctChangesQuery")
         val jdbcCTService = new JdbcCTService(jdbcContext) with JdbcBuilder with SparkContextTrait
