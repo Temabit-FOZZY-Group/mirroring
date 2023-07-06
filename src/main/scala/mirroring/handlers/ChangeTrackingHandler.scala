@@ -146,8 +146,13 @@ class ChangeTrackingHandler(
         logger.warn(
           "No CT version found in the latest version of the userMetadata. CHANGE_TRACKING_MIN_VALID_VERSION will be used."
         )
-        changeTrackingLastVersion = ctMinValidVersion
-        changeTrackingLastVersion
+        ctMinValidVersion
+      case e: org.apache.spark.sql.AnalysisException
+          if e.getMessage().endsWith("is not a Delta table.") =>
+        logger.warn(
+          s"${e.getMessage()} CHANGE_TRACKING_MIN_VALID_VERSION will be used."
+        )
+        ctMinValidVersion
     }
   }
 

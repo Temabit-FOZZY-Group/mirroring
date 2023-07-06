@@ -199,7 +199,8 @@ case class Config(
       _lastPartitionCol = lastPartitionCol,
       _mergeKeys = mergeKeys,
       _primaryKey = primary_key,
-      _whereClause = whereClause.toString
+      _whereClause = whereClause.toString,
+      _isCtAppendModeEnabled = if (isChangeTrackingEnabled && mode == "append") true else false
     )
   }
 
