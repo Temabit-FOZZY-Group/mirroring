@@ -24,7 +24,13 @@ import mirroring.services.databases.{
   JdbcPartitionedService,
   JdbcService
 }
-import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
+import mirroring.services.writer.{
+  ChangeTrackingAppendService,
+  ChangeTrackingService,
+  DeltaService,
+  MergeService,
+  WriterContext
+}
 import org.apache.spark.sql.DataFrame
 import wvlet.log.LogSupport
 
@@ -44,25 +50,6 @@ class MirroringManager extends LogSupport {
 
     val writerService = getWriteService(config, writerContext)
     writerService.write(sqlSourceData)
-
-    if (config.isChangeTrackingEnabled && config.mode == "append" && isDeltaTableExists) {
-      val pathAppend: String = s"${config.pathToSave}_ct_append"
-      logger.info(s"Append CT data as is into $pathAppend...")
-      val writerAppendContext = WriterContext(
-        _mode = config.mode,
-        _pathToSave = pathAppend,
-        _partitionCols = config.partitionCols,
-        _lastPartitionCol = config.lastPartitionCol,
-        _mergeKeys = config.mergeKeys,
-        _primaryKey = config.primary_key,
-        _whereClause = config.whereClause.toString
-      )
-      val writerAppendService = new DeltaService(writerAppendContext) with SparkContextTrait
-      writerAppendService.write(sqlSourceData)
-
-      val targetTableNameAppend = s"${config.targetTableName}_ct_append"
-      SqlService.createCtAppendTable(config.hiveDb, targetTableNameAppend, pathAppend)
-    }
 
     deltaPostProcessing(config, sqlSourceData, writerService.getUserMetadataJSON)
   }
@@ -136,7 +123,9 @@ class MirroringManager extends LogSupport {
   }
 
   private def getWriteService(config: Config, writerContext: WriterContext) = {
-    if (config.isChangeTrackingEnabled) {
+    if (config.isChangeTrackingEnabled && config.mode == "append") {
+      new ChangeTrackingAppendService(writerContext) with SparkContextTrait
+    } else if (config.isChangeTrackingEnabled) {
       new ChangeTrackingService(writerContext) with SparkContextTrait
     } else if (config.useMerge) {
       new MergeService(writerContext) with SparkContextTrait
