@@ -70,6 +70,7 @@ case class Config(
     _CTMinValidVersionParams: String,
     CTCurrentVersionQuery: String,
     _CTCurrentVersionParams: String,
+    CTWindow: Int,
     disablePlatformIngestedAt: Boolean,
     logRetentionDuration: String,
     deletedFileRetentionDuration: String

@@ -25,14 +25,18 @@ import mirroring.services.writer.WriterContext
 import wvlet.airframe.codec.MessageCodec
 import wvlet.log.Logger
 
-class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) {
+class ChangeTrackingHandler(
+    config: Config,
+    jdbcCTService: JdbcCTService,
+    isDeltaTableExists: Boolean
+) {
   this: SparkContextTrait =>
 
   val logger: Logger = Logger.of[ChangeTrackingHandler]
 
   lazy val ctCurrentVersion: BigInt = {
     logger.info(s"Querying current change tracking version from the source...")
-    val version: BigInt = if (config.CTCurrentVersionQuery.isEmpty) {
+    var version: BigInt = if (config.CTCurrentVersionQuery.isEmpty) {
       logger.info("Change Tracking: use default query to get CTCurrentVersion")
       jdbcCTService.getChangeTrackingVersion(
         query = ChangeTrackingBuilder.currentVersionQuery
@@ -45,6 +49,10 @@ class ChangeTrackingHandler(config: Config, jdbcCTService: JdbcCTService) {
       )
     }
     logger.info(s"Current CT version for the MSSQL table: $version")
+    if (config.CTWindow >= 0 && isDeltaTableExists) {
+      version = version.min(ctDeltaVersion + config.CTWindow)
+      logger.info(s"Current CT version after applying window ${config.CTWindow}: $version")
+    }
     version
   }
 

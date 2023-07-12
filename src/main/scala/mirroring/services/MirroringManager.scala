@@ -79,13 +79,13 @@ class MirroringManager {
   private def loadDataFromSqlSource(config: Config, writerContext: WriterContext): DataFrame = {
     val jdbcContext = config.getJdbcContext
 
-    lazy val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(
-      config,
-      getJdbcChangeTrackingService(config)
-    ) with SparkContextTrait
-
     lazy val isDeltaTableExists: Boolean =
       DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
+    lazy val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(
+      config,
+      getJdbcChangeTrackingService(config),
+      isDeltaTableExists
+    ) with SparkContextTrait
 
     def getQuery: String = {
       if (config.isChangeTrackingEnabled || config.isCustomCTEnabled) {

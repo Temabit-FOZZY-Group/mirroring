@@ -48,7 +48,7 @@ object ConfigBuilder extends LogSupport {
     "timezone"                        -> Config.Timezone,
     "force_partition"                 -> "false",
     "change_tracking"                 -> "false",
-    "custom_ct"                -> "false",
+    "custom_ct"                       -> "false",
     "primary_key"                     -> "",
     "parent_key"                      -> "",
     "zorderby_col"                    -> "",
@@ -60,6 +60,7 @@ object ConfigBuilder extends LogSupport {
     "ct_min_valid_version_params"     -> "",
     "ct_current_version_query"        -> "",
     "ct_current_version_params"       -> "",
+    "ct_window"                       -> "-1",
     "disable_platform_ingested_at"    -> "false",
     "log_retention_duration"          -> "interval 7 days",
     "deleted_file_retention_duration" -> "interval 7 days"
@@ -127,6 +128,7 @@ object ConfigBuilder extends LogSupport {
       _CTMinValidVersionParams = arguments("ct_min_valid_version_params"),
       CTCurrentVersionQuery = arguments("ct_current_version_query"),
       _CTCurrentVersionParams = arguments("ct_current_version_params"),
+      CTWindow = arguments("ct_window").toInt,
       disablePlatformIngestedAt = arguments("disable_platform_ingested_at").toBoolean,
       logRetentionDuration = arguments("log_retention_duration"),
       deletedFileRetentionDuration = arguments("deleted_file_retention_duration")
