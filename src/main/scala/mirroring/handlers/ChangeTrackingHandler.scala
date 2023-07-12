@@ -50,7 +50,7 @@ class ChangeTrackingHandler(
     }
     logger.info(s"Current CT version for the MSSQL table: $version")
     if (config.CTWindow >= 0 && isDeltaTableExists) {
-      version = version.min(ctDeltaVersion + config.CTWindow)
+      version = version.min(changeTrackingLastVersion() + config.CTWindow)
       logger.info(s"Current CT version after applying window ${config.CTWindow}: $version")
     }
     version
