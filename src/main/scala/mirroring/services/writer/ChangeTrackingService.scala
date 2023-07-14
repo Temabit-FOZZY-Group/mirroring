@@ -26,7 +26,8 @@ import wvlet.log.Logger
 
 class ChangeTrackingService(
     context: WriterContext
-) extends DeltaService(context) {
+) extends DeltaService(context)
+    with Serializable {
   this: SparkContextTrait =>
 
   override val logger: Logger = Logger.of[ChangeTrackingService]

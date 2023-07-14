@@ -29,7 +29,7 @@ class ChangeTrackingHandler(
     config: Config,
     jdbcCTService: JdbcCTService,
     isDeltaTableExists: Boolean
-) {
+) extends Serializable {
   this: SparkContextTrait =>
 
   val logger: Logger = Logger.of[ChangeTrackingHandler]
