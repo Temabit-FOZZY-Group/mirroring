@@ -274,7 +274,7 @@ case class Config(
        |force_partition - $forcePartition,
        |timezone - $timezone,
        |change_tracking - $isChangeTrackingEnabled,
-       |object_mirroring - $isCustomCTEnabled,
+       |custom_ct - $isCustomCTEnabled,
        |primary_key - [${primary_key.mkString(", ")}],
        |zorderby_col - [${zorderby_col.mkString(", ")}],
        |log_lvl - $logLvl,
