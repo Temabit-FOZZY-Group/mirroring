@@ -150,9 +150,7 @@ case class Config(
   )
 
   require(
-    if (isCustomCTEnabled) {
-      CTChangesQuery.nonEmpty
-    } else { true },
+    !isCustomCTEnabled || (isCustomCTEnabled && CTChangesQuery.nonEmpty),
     s"Parameters `ct_changes_query` should be specified if `custom_ct` is true."
   )
 
