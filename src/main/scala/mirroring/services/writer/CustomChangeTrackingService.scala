@@ -49,33 +49,44 @@ class CustomChangeTrackingService(
   val userMetadataJSON: String            = generateUserMetadataJSON(context.ctCurrentVersion)
 
   override def write(data: DataFrame): Unit = {
-    if (DeltaTable.isDeltaTable(this.getSparkSession, context.path)) {
+    if (!DeltaTable.isDeltaTable(getSparkSession, context.path)) {
+      logger.info("Target table doesn't exist yet. Initializing table...")
+      super.write(data)
+    } else {
       logger.info("Target table already exists. Merging data...")
-      verifySchemaMatch(data)
+      mergeData(data)
+    }
+  }
 
-      this.getSparkSession.conf.set(
-        "spark.databricks.delta.commitInfo.userMetadata",
-        lastVersionUserMetadataJSON
-      )
+  private def mergeData(data: DataFrame): Unit = {
+    verifySchemaMatch(data)
 
-      deleteRows(data)
+    val updOperations = data.as(Config.SourceAlias).where(insertCondition)
+    val deleteOperations = data
+      .as(Config.SourceAlias)
+      .where(deleteCondition)
 
+    if (updOperations.isEmpty) {
       this.getSparkSession.conf.set(
         "spark.databricks.delta.commitInfo.userMetadata",
         userMetadataJSON
       )
-
-      upsertRows(data)
-
+      deleteRows(deleteOperations)
     } else {
-      logger.info("Target table doesn't exist yet. Initializing table...")
-      super.write(data)
+      this.getSparkSession.conf.set(
+        "spark.databricks.delta.commitInfo.userMetadata",
+        lastVersionUserMetadataJSON
+      )
+      deleteRows(deleteOperations)
+      this.getSparkSession.conf.set(
+        "spark.databricks.delta.commitInfo.userMetadata",
+        userMetadataJSON
+      )
+      upsertRows(updOperations)
     }
   }
 
-  private def upsertRows(data: DataFrame): Unit = {
-    val updOperations = data.as(Config.SourceAlias).where(insertCondition)
-
+  private def upsertRows(updOperations: DataFrame): Unit = {
     val condition = FilterBuilder.buildMergeCondition(
       context.primaryKey,
       sourceColPrefix = sourceColPrefix,
@@ -120,11 +131,7 @@ class CustomChangeTrackingService(
     userMetadataJSON
   }
 
-  private def deleteRows(data: DataFrame): Unit = {
-    val deleteOperations = data
-      .as(Config.SourceAlias)
-      .where(deleteCondition)
-
+  private def deleteRows(deleteOperations: DataFrame): Unit = {
     val condition = FilterBuilder.buildMergeCondition(
       context.parentKey,
       sourceColPrefix = sourceColPrefix,
