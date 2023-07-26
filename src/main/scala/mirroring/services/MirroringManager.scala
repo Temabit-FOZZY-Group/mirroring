@@ -24,7 +24,13 @@ import mirroring.services.databases.{
   JdbcPartitionedService,
   JdbcService
 }
-import mirroring.services.writer.{ChangeTrackingService, DeltaService, MergeService, WriterContext}
+import mirroring.services.writer.{
+  ChangeTrackingService,
+  CustomChangeTrackingService,
+  DeltaService,
+  MergeService,
+  WriterContext
+}
 import org.apache.spark.sql.DataFrame
 import wvlet.log.Logger
 
@@ -73,16 +79,16 @@ class MirroringManager {
   private def loadDataFromSqlSource(config: Config, writerContext: WriterContext): DataFrame = {
     val jdbcContext = config.getJdbcContext
 
+    lazy val isDeltaTableExists: Boolean =
+      DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
     lazy val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(
       config,
-      getJdbcChangeTrackingService(config)
+      getJdbcChangeTrackingService(config),
+      isDeltaTableExists
     ) with SparkContextTrait
 
-    val isDeltaTableExists: Boolean =
-      DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
-
     def getQuery: String = {
-      if (config.isChangeTrackingEnabled) {
+      if (config.isChangeTrackingEnabled || config.isCustomChangeTrackingEnabled) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
         changeTrackingHandler.query(isDeltaTableExists)
       } else {
@@ -91,7 +97,10 @@ class MirroringManager {
     }
 
     val jdbcDF: DataFrame =
-      if (config.isChangeTrackingEnabled && isDeltaTableExists && config.CTChangesQuery.nonEmpty) {
+      if (
+        (config.isChangeTrackingEnabled || config.isCustomChangeTrackingEnabled)
+        && isDeltaTableExists && config.CTChangesQuery.nonEmpty
+      ) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
         logger.info("Change Tracking: use custom ctChangesQuery")
         val jdbcCTService = new JdbcCTService(jdbcContext) with JdbcBuilder with SparkContextTrait
@@ -116,7 +125,9 @@ class MirroringManager {
   }
 
   private def getWriteService(config: Config, writerContext: WriterContext) = {
-    if (config.isChangeTrackingEnabled) {
+    if (config.isCustomChangeTrackingEnabled) {
+      new CustomChangeTrackingService(writerContext) with SparkContextTrait
+    } else if (config.isChangeTrackingEnabled) {
       new ChangeTrackingService(writerContext) with SparkContextTrait
     } else if (config.useMerge) {
       new MergeService(writerContext) with SparkContextTrait

@@ -58,7 +58,9 @@ case class Config(
     forcePartition: Boolean,
     timezone: String,
     isChangeTrackingEnabled: Boolean,
+    isCustomChangeTrackingEnabled: Boolean,
     private val _primaryKey: String,
+    private val _parentKey: String,
     private val _zOrderByCol: String,
     logLvl: String,
     logSparkLvl: String,
@@ -68,6 +70,7 @@ case class Config(
     _CTMinValidVersionParams: String,
     CTCurrentVersionQuery: String,
     _CTCurrentVersionParams: String,
+    CTWindow: Int,
     disablePlatformIngestedAt: Boolean,
     logRetentionDuration: String,
     deletedFileRetentionDuration: String
@@ -89,6 +92,7 @@ case class Config(
   val pathToSave: String                     = s"${_pathToSave}/$targetTableName"
   val mergeKeys: Array[String]               = stringToArray(_mergeKeys)
   val primary_key: Array[String]             = stringToArray(_primaryKey)
+  val parent_key: Array[String]              = stringToArray(_parentKey)
   val zorderby_col: Array[String]            = stringToArray(_zOrderByCol)
   val partitionCols: Array[String]           = stringToArray(_partitionCol)
   val CTChangesQueryParams: Array[String]    = stringToArray(_CTChangesQueryParams)
@@ -141,8 +145,18 @@ case class Config(
   )
 
   require(
-    isChangeTrackingEnabled ^ primary_key.length == 0,
-    s"Parameter `primary_key` should be specified if `isChangeTrackingEnabled` is true."
+    (isChangeTrackingEnabled || isCustomChangeTrackingEnabled) ^ primary_key.length == 0,
+    s"Parameter `primary_key` should be specified if `change_tracking` or `custom_ct` is true."
+  )
+
+  require(
+    !isCustomChangeTrackingEnabled || (isCustomChangeTrackingEnabled && CTChangesQuery.nonEmpty),
+    s"Parameters `ct_changes_query` should be specified if `custom_ct` is true."
+  )
+
+  require(
+    isCustomChangeTrackingEnabled ^ parent_key.length == 0,
+    s"Parameters `parent_key` should be specified if `custom_ct` is true."
   )
 
   val whereClause = new mutable.StringBuilder("1=1")
@@ -199,7 +213,9 @@ case class Config(
       _lastPartitionCol = lastPartitionCol,
       _mergeKeys = mergeKeys,
       _primaryKey = primary_key,
-      _whereClause = whereClause.toString
+      _parentKey = parent_key,
+      _whereClause = whereClause.toString,
+      _changeTrackingLastVersion = () => None
     )
   }
 
@@ -256,6 +272,7 @@ case class Config(
        |force_partition - $forcePartition,
        |timezone - $timezone,
        |change_tracking - $isChangeTrackingEnabled,
+       |custom_ct - $isCustomChangeTrackingEnabled,
        |primary_key - [${primary_key.mkString(", ")}],
        |zorderby_col - [${zorderby_col.mkString(", ")}],
        |log_lvl - $logLvl,

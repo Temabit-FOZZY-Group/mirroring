@@ -57,8 +57,13 @@ Library compares source and destination schemes. If column names don't match str
   stored in UTC. Default - 'Europe/Kiev'.
 * **change_tracking**       `optional` Indicates whether Change Tracking should be used to sync table,
   values: `true`, `false`. Default - `false`.
+* **custom_ct**             `optional` Indicates whether custom procedures will be used handling multiple tables
+  mirroring as the whole. Expects `parent_key`. Values: `true`, `false`. Default - `false`.
 * **primary_key**           `optional` Primary key of the source table, e.g. `"id,[FilId]"`. If
   specified, `change_tracking` must be `true`.
+* **parent_key**            `optional` The key of the parent table (in case of the child table) or
+  primary_key of the table (in case of the parent table), e.g. `"id,[FilId]"`.
+  If specified, `custom_ct` must be `true`.
 * **zorderby_col**          `optional` Columns on which perform z-ordering,
   viz [docs](https://docs.delta.io/2.0.0/optimizations-oss.html#z-ordering-multi-dimensional-clustering). Note, the
   effectiveness of the locality drops with each extra column.
@@ -75,6 +80,9 @@ Library compares source and destination schemes. If column names don't match str
 * **ct_changes_query**            `optional` custom query to get Change Tracking changes,
   e.g. `exec dbo.getCTChanges ?, ?`. Requires exactly two bigint params in order to get metadata.
 * **ct_changes_query_params**     `optional` Parameters for `ct_changes_query`.
+* **ct_window**     `optional` Window to be applied to the last change tracking version.
+  If `current change tracking version` exceeds `last change tracking + ct_window` value than this value
+  will be used instead of `current change tracking version`.
 * **disable_platform_ingested_at**`optional` Set `true` if you want to disable autocreation
   column `_platform_ingested_at` on target.
 * **log_retention_duration**      `optional` default 7 days,
