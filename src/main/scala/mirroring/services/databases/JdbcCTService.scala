@@ -48,15 +48,17 @@ class JdbcCTService(jdbcContext: JdbcContext) extends Serializable {
       val schema: StructType = buildStructFromResultSet(resultSet)
       log.debug(schema)
       log.info("Executing procedure to create rdd...")
-      var myRDD: JavaRDD[Array[Object]] = JdbcRDD.create(
-        getSparkSession.sparkContext,
-        connectionManager,
-        jdbcContext.ctChangesQuery,
-        params(0).toLong,
-        params(1).toLong,
-        1,
-        r => JdbcRDD.resultSetToObjectArray(r)
-      )
+      // TO DO: refactor into val moving repartition here
+      var myRDD: JavaRDD[Array[Object]] = JdbcRDD
+        .create(
+          getSparkSession.sparkContext,
+          connectionManager,
+          jdbcContext.ctChangesQuery,
+          params(0).toLong,
+          params(1).toLong,
+          1,
+          r => JdbcRDD.resultSetToObjectArray(r)
+        )
       log.info("Repartitioning...")
       myRDD = myRDD.repartition(getSparkSession.conf.get("spark.sql.shuffle.partitions").toInt)
       log.info(s"getNumPartitions: ${myRDD.getNumPartitions}. Building DataFrame from rdd...")
