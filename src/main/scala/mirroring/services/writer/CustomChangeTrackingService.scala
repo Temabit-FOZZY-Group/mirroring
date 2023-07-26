@@ -29,7 +29,7 @@ class CustomChangeTrackingService(
 ) extends DeltaService(context) {
   this: SparkContextTrait =>
 
-  override val logger: Logger = Logger.of[ChangeTrackingService]
+  override val logger: Logger = Logger.of[CustomChangeTrackingService]
 
   private val deleteCondition =
     s"${Config.SourceAlias}.SYS_CHANGE_OPERATION = 'D'"
