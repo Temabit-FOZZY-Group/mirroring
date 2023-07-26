@@ -58,7 +58,7 @@ case class Config(
     forcePartition: Boolean,
     timezone: String,
     isChangeTrackingEnabled: Boolean,
-    isCustomCTEnabled: Boolean,
+    isCustomChangeTrackingEnabled: Boolean,
     private val _primaryKey: String,
     private val _parentKey: String,
     private val _zOrderByCol: String,
@@ -145,17 +145,17 @@ case class Config(
   )
 
   require(
-    (isChangeTrackingEnabled || isCustomCTEnabled) ^ primary_key.length == 0,
+    (isChangeTrackingEnabled || isCustomChangeTrackingEnabled) ^ primary_key.length == 0,
     s"Parameter `primary_key` should be specified if `change_tracking` or `custom_ct` is true."
   )
 
   require(
-    !isCustomCTEnabled || (isCustomCTEnabled && CTChangesQuery.nonEmpty),
+    !isCustomChangeTrackingEnabled || (isCustomChangeTrackingEnabled && CTChangesQuery.nonEmpty),
     s"Parameters `ct_changes_query` should be specified if `custom_ct` is true."
   )
 
   require(
-    isCustomCTEnabled ^ parent_key.length == 0,
+    isCustomChangeTrackingEnabled ^ parent_key.length == 0,
     s"Parameters `parent_key` should be specified if `custom_ct` is true."
   )
 
@@ -272,7 +272,7 @@ case class Config(
        |force_partition - $forcePartition,
        |timezone - $timezone,
        |change_tracking - $isChangeTrackingEnabled,
-       |custom_ct - $isCustomCTEnabled,
+       |custom_ct - $isCustomChangeTrackingEnabled,
        |primary_key - [${primary_key.mkString(", ")}],
        |zorderby_col - [${zorderby_col.mkString(", ")}],
        |log_lvl - $logLvl,

@@ -116,7 +116,7 @@ object ConfigBuilder extends LogSupport {
       forcePartition = arguments("force_partition").toBoolean,
       timezone = arguments("timezone"),
       isChangeTrackingEnabled = arguments("change_tracking").toBoolean,
-      isCustomCTEnabled = arguments("custom_ct").toBoolean,
+      isCustomChangeTrackingEnabled = arguments("custom_ct").toBoolean,
       _primaryKey = arguments("primary_key"),
       _parentKey = arguments("parent_key"),
       _zOrderByCol = arguments("zorderby_col"),
