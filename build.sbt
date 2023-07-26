@@ -37,7 +37,7 @@ scalaVersion := "2.12.10"
 val sparkVersion    = "3.3.2"
 val airframeVersion = "23.6.1"
 val deltaVersion    = "2.2.0"
-version := s"1.1.post6.dev9-spark${sparkVersion}-scala${scalaVersion.value}"
+version := s"1.1.6-spark${sparkVersion}-scala${scalaVersion.value}"
 libraryDependencies ++= Seq(
   "org.apache.spark"    %% "spark-core"         % sparkVersion % "provided",
   "org.apache.spark"    %% "spark-sql"          % sparkVersion % "provided",
