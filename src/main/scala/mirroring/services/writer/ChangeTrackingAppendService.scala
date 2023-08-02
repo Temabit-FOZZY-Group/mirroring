@@ -20,13 +20,15 @@ import mirroring.config.UserMetadata
 import mirroring.services.SparkContextTrait
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row}
 import wvlet.airframe.codec.MessageCodec
-import wvlet.log.LogSupport
+import wvlet.log.Logger
 
 class ChangeTrackingAppendService(
     context: WriterContext
 ) extends DeltaService(context)
-    with LogSupport {
+    with Serializable {
   this: SparkContextTrait =>
+
+  override val logger: Logger = Logger.of[ChangeTrackingAppendService]
 
   val userMetadataJSON: String = generateUserMetadataJSON(context.ctCurrentVersion)
 
