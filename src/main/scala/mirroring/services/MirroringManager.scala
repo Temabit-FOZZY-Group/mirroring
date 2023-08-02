@@ -25,8 +25,9 @@ import mirroring.services.databases.{
   JdbcService
 }
 import mirroring.services.writer.{
-  ChangeTrackingService,
   CustomChangeTrackingService,
+  ChangeTrackingAppendService,
+  ChangeTrackingService,
   DeltaService,
   MergeService,
   WriterContext
@@ -38,13 +39,14 @@ class MirroringManager {
   this: SparkContextTrait =>
 
   val logger: Logger = Logger.of[MirroringManager]
-
   def startDataMirroring(config: Config): Unit = {
 
     setSparkContext(config)
 
     val writerContext: WriterContext = config.getWriterContext
-    val jdbcDF: DataFrame            = loadDataFromSqlSource(config, writerContext)
+    val isDeltaTableExists: Boolean =
+      DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
+    val jdbcDF: DataFrame = loadDataFromSqlSource(config, writerContext, isDeltaTableExists)
 
     val sqlSourceData = DataframeBuilder().buildDataFrame(jdbcDF, config.getDataframeBuilderContext)
 
@@ -76,11 +78,13 @@ class MirroringManager {
     FlowLogger.init(loggerConfig)
   }
 
-  private def loadDataFromSqlSource(config: Config, writerContext: WriterContext): DataFrame = {
+  private def loadDataFromSqlSource(
+      config: Config,
+      writerContext: WriterContext,
+      isDeltaTableExists: Boolean
+  ): DataFrame = {
     val jdbcContext = config.getJdbcContext
 
-    lazy val isDeltaTableExists: Boolean =
-      DeltaTable.isDeltaTable(getSparkSession, config.pathToSave)
     lazy val changeTrackingHandler: ChangeTrackingHandler = new ChangeTrackingHandler(
       config,
       getJdbcChangeTrackingService(config),
@@ -90,7 +94,7 @@ class MirroringManager {
     def getQuery: String = {
       if (config.isChangeTrackingEnabled || config.isCustomChangeTrackingEnabled) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
-        changeTrackingHandler.query(isDeltaTableExists)
+        changeTrackingHandler.query(isDeltaTableExists, writerContext.isCtAppendModeEnabled)
       } else {
         config.query
       }
@@ -99,7 +103,7 @@ class MirroringManager {
     val jdbcDF: DataFrame =
       if (
         (config.isChangeTrackingEnabled || config.isCustomChangeTrackingEnabled)
-        && isDeltaTableExists && config.CTChangesQuery.nonEmpty
+        && (isDeltaTableExists || writerContext.isCtAppendModeEnabled) && config.CTChangesQuery.nonEmpty
       ) {
         changeTrackingHandler.changeTrackingFlow(isDeltaTableExists, writerContext, jdbcContext)
         logger.info("Change Tracking: use custom ctChangesQuery")
@@ -127,6 +131,8 @@ class MirroringManager {
   private def getWriteService(config: Config, writerContext: WriterContext) = {
     if (config.isCustomChangeTrackingEnabled) {
       new CustomChangeTrackingService(writerContext) with SparkContextTrait
+    } else if (config.isChangeTrackingEnabled && config.mode == "append") {
+      new ChangeTrackingAppendService(writerContext) with SparkContextTrait
     } else if (config.isChangeTrackingEnabled) {
       new ChangeTrackingService(writerContext) with SparkContextTrait
     } else if (config.useMerge) {

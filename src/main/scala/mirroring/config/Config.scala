@@ -215,7 +215,8 @@ case class Config(
       _primaryKey = primary_key,
       _parentKey = parent_key,
       _whereClause = whereClause.toString,
-      _changeTrackingLastVersion = () => None
+      _changeTrackingLastVersion = () => None,
+      _isCtAppendModeEnabled = if (isChangeTrackingEnabled && mode == "append") true else false
     )
   }
 

@@ -34,7 +34,7 @@ class ChangeTrackingHandler(
 
   val logger: Logger = Logger.of[ChangeTrackingHandler]
 
-  lazy val ctCurrentVersion: BigInt = {
+  def ctCurrentVersion(isCtAppendModeEnabled: Boolean): BigInt = {
     logger.info(s"Querying current change tracking version from the source...")
     var version: BigInt = if (config.CTCurrentVersionQuery.isEmpty) {
       logger.info("Change Tracking: use default query to get CTCurrentVersion")
@@ -50,7 +50,7 @@ class ChangeTrackingHandler(
     }
     logger.info(s"Current CT version for the MSSQL table: $version")
     if (config.CTWindow >= 0 && isDeltaTableExists) {
-      version = version.min(changeTrackingLastVersion() + config.CTWindow)
+      version = version.min(changeTrackingLastVersion(isCtAppendModeEnabled) + config.CTWindow)
       logger.info(s"Current CT version after applying window ${config.CTWindow}: $version")
     }
     version
@@ -96,6 +96,23 @@ class ChangeTrackingHandler(
     }
   }
 
+  private lazy val ctAppendDeltaVersion: BigInt = {
+    val userMetaJSON = DeltaTable
+      .forPath(getSparkSession, config.pathToSave)
+      .history()
+      .where("operation <> 'OPTIMIZE'")
+      .select("userMetadata")
+      .collect()
+
+    val codec = MessageCodec.of[UserMetadata]
+    val userMetadata: Array[UserMetadata] =
+      userMetaJSON.map(_.getString(0)).flatMap { JSON =>
+        if (JSON == null) None else codec.unpackJson(JSON)
+      }
+    val ChangeTrackingVersion: BigInt = userMetadata.map(_.ChangeTrackingVersion).max
+    ChangeTrackingVersion
+  }
+
   private lazy val primaryKeyOnClause: String = {
     FilterBuilder.buildJoinCondition(config.primary_key, "T", "CT")
   }
@@ -108,15 +125,25 @@ class ChangeTrackingHandler(
     primaryKeySelectClause = primaryKeySelectClause,
     schema = config.schema,
     sourceTable = config.tab,
-    changeTrackingLastVersion = changeTrackingLastVersion(),
+    changeTrackingLastVersion = changeTrackingLastVersion(false),
     primaryKeyOnClause = primaryKeyOnClause,
-    ctCurrentVersion = ctCurrentVersion
+    ctCurrentVersion = ctCurrentVersion(false)
   )
 
-  def changeTrackingLastVersion(): BigInt = {
+  private lazy val ctChangesAppendQuery: String = ChangeTrackingBuilder.buildSelectWithVersion(
+    primaryKeySelectClause = primaryKeySelectClause,
+    schema = config.schema,
+    sourceTable = config.tab,
+    changeTrackingLastVersion = changeTrackingLastVersion(true),
+    primaryKeyOnClause = primaryKeyOnClause,
+    ctCurrentVersion = ctCurrentVersion(true)
+  )
+
+  def changeTrackingLastVersion(isCtAppendModeEnabled: Boolean): BigInt = {
     var changeTrackingLastVersion: BigInt = -1
     try {
-      changeTrackingLastVersion = ctDeltaVersion
+      changeTrackingLastVersion =
+        if (isCtAppendModeEnabled) ctAppendDeltaVersion else ctDeltaVersion
       logger.info(
         s"Last change tracking version extracted from the delta table: ${changeTrackingLastVersion.toString}"
       )
@@ -126,14 +153,24 @@ class ChangeTrackingHandler(
         logger.warn(
           "No CT version found in the latest version of the userMetadata. CHANGE_TRACKING_MIN_VALID_VERSION will be used."
         )
-        changeTrackingLastVersion = ctMinValidVersion
-        changeTrackingLastVersion
+        ctMinValidVersion
+      case e: org.apache.spark.sql.AnalysisException
+          if e.getMessage.endsWith("is not a Delta table.") =>
+        logger.warn(
+          s"${e.getMessage} CHANGE_TRACKING_MIN_VALID_VERSION will be used."
+        )
+        ctMinValidVersion
+      case e: java.lang.UnsupportedOperationException =>
+        logger.warn(
+          s"${e.getMessage} CHANGE_TRACKING_MIN_VALID_VERSION will be used."
+        )
+        ctMinValidVersion
     }
   }
 
-  def query(isDeltaTableExists: Boolean): String = {
-    if (isDeltaTableExists) {
-      ctChangesQuery
+  def query(isDeltaTableExists: Boolean, ctAppendMode: Boolean): String = {
+    if (isDeltaTableExists || ctAppendMode) {
+      getCtChangesQuery(ctAppendMode)
     } else {
       logger.info("Target table doesn't exist yet. Reading data in full ...")
       s"(select * from [${config.schema}].[${config.tab}] with (nolock) where 1=1) as subq"
@@ -145,15 +182,26 @@ class ChangeTrackingHandler(
       currentWriterContext: WriterContext,
       currentJdbcContext: JdbcContext
   ): Unit = {
-    currentWriterContext._ctCurrentVersion = Some(ctCurrentVersion)
-    currentWriterContext._changeTrackingLastVersion = () => Some(changeTrackingLastVersion())
-    currentJdbcContext._ctCurrentVersion = Some(ctCurrentVersion)
-    currentJdbcContext._changeTrackingLastVersion = () => Some(changeTrackingLastVersion())
+    currentWriterContext._ctCurrentVersion = Some(
+      ctCurrentVersion(currentWriterContext.isCtAppendModeEnabled)
+    )
+    currentWriterContext._changeTrackingLastVersion = () =>
+      Some(changeTrackingLastVersion(currentWriterContext.isCtAppendModeEnabled))
+    currentJdbcContext._ctCurrentVersion = Some(
+      ctCurrentVersion(currentWriterContext.isCtAppendModeEnabled)
+    )
+    currentJdbcContext._changeTrackingLastVersion = () =>
+      Some(changeTrackingLastVersion(currentWriterContext.isCtAppendModeEnabled))
     if (isDeltaTableExists) {
       require(
-        changeTrackingLastVersion() >= ctMinValidVersion,
+        changeTrackingLastVersion(currentWriterContext.isCtAppendModeEnabled) >= ctMinValidVersion,
         "Invalid Change Tracking version. Client table must be reinitialized."
       )
     }
   }
+
+  private def getCtChangesQuery(ctAppendMode: Boolean): String = {
+    if (ctAppendMode) ctChangesAppendQuery else ctChangesQuery
+  }
+
 }

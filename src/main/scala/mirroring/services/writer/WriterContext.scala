@@ -26,7 +26,8 @@ case class WriterContext(
     private val _parentKey: Array[String],
     private val _whereClause: String,
     var _changeTrackingLastVersion: () => Option[BigInt],
-    var _ctCurrentVersion: Option[BigInt] = None
+    var _ctCurrentVersion: Option[BigInt] = None,
+    private val _isCtAppendModeEnabled: Boolean
 ) {
 
   val mode: String                  = _mode
@@ -39,5 +40,6 @@ case class WriterContext(
   val whereClause: String           = _whereClause
   lazy val ctLastVersion: BigInt    = _changeTrackingLastVersion().get
   lazy val ctCurrentVersion: BigInt = _ctCurrentVersion.get
+  val isCtAppendModeEnabled         = _isCtAppendModeEnabled
 
 }

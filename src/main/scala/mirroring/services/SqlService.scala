@@ -64,6 +64,21 @@ object SqlService extends LogSupport with SparkContextTrait {
     }
   }
 
+  def createCtAppendTable(hiveDb: String, targetTableName: String, pathToSave: String): Unit = {
+    val createTableSQL = SqlBuilder.buildCreateTableSQL(
+      hiveDb,
+      targetTableName,
+      pathToSave
+    )
+
+    val spark = getSparkSession
+
+    if (DeltaTable.isDeltaTable(spark, pathToSave)) {
+      logger.info(s"Running SQL: ${createTableSQL.linesIterator.mkString(" ").trim}")
+      spark.sql(createTableSQL)
+    }
+  }
+
   private def logRetentionConfigIsChanged(
       config: Config,
       logRetentionDuration: String,
