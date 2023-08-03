@@ -34,7 +34,7 @@ class ChangeTrackingHandler(
 
   val logger: Logger = Logger.of[ChangeTrackingHandler]
 
-  def ctCurrentVersion(isCtAppendModeEnabled: Boolean): BigInt = {
+  private lazy val ctCurrentVersion: BigInt = {
     logger.info(s"Querying current change tracking version from the source...")
     var version: BigInt = if (config.CTCurrentVersionQuery.isEmpty) {
       logger.info("Change Tracking: use default query to get CTCurrentVersion")
@@ -50,7 +50,7 @@ class ChangeTrackingHandler(
     }
     logger.info(s"Current CT version for the MSSQL table: $version")
     if (config.CTWindow >= 0 && isDeltaTableExists) {
-      version = version.min(changeTrackingLastVersion(isCtAppendModeEnabled) + config.CTWindow)
+      version = version.min(changeTrackingLastVersion + config.CTWindow)
       logger.info(s"Current CT version after applying window ${config.CTWindow}: $version")
     }
     version
@@ -125,25 +125,24 @@ class ChangeTrackingHandler(
     primaryKeySelectClause = primaryKeySelectClause,
     schema = config.schema,
     sourceTable = config.tab,
-    changeTrackingLastVersion = changeTrackingLastVersion(false),
+    changeTrackingLastVersion = changeTrackingLastVersion,
     primaryKeyOnClause = primaryKeyOnClause,
-    ctCurrentVersion = ctCurrentVersion(false)
+    ctCurrentVersion = ctCurrentVersion
   )
 
-  private lazy val ctChangesAppendQuery: String = ChangeTrackingBuilder.buildSelectWithVersion(
+  private lazy val ctAppendChangesQuery: String = ChangeTrackingBuilder.buildSelectWithVersion(
     primaryKeySelectClause = primaryKeySelectClause,
     schema = config.schema,
     sourceTable = config.tab,
-    changeTrackingLastVersion = changeTrackingLastVersion(true),
+    changeTrackingLastVersion = changeTrackingLastVersion,
     primaryKeyOnClause = primaryKeyOnClause,
-    ctCurrentVersion = ctCurrentVersion(true)
+    ctCurrentVersion = ctCurrentVersion
   )
 
-  def changeTrackingLastVersion(isCtAppendModeEnabled: Boolean): BigInt = {
+  private lazy val changeTrackingLastVersion: BigInt = {
     var changeTrackingLastVersion: BigInt = -1
     try {
-      changeTrackingLastVersion =
-        if (isCtAppendModeEnabled) ctAppendDeltaVersion else ctDeltaVersion
+      changeTrackingLastVersion = getChangeTrackingLastVersion
       logger.info(
         s"Last change tracking version extracted from the delta table: ${changeTrackingLastVersion.toString}"
       )
@@ -170,7 +169,7 @@ class ChangeTrackingHandler(
 
   def query(isDeltaTableExists: Boolean, ctAppendMode: Boolean): String = {
     if (isDeltaTableExists || ctAppendMode) {
-      getCtChangesQuery(ctAppendMode)
+      getCtChangesQuery
     } else {
       logger.info("Target table doesn't exist yet. Reading data in full ...")
       s"(select * from [${config.schema}].[${config.tab}] with (nolock) where 1=1) as subq"
@@ -182,26 +181,24 @@ class ChangeTrackingHandler(
       currentWriterContext: WriterContext,
       currentJdbcContext: JdbcContext
   ): Unit = {
-    currentWriterContext._ctCurrentVersion = Some(
-      ctCurrentVersion(currentWriterContext.isCtAppendModeEnabled)
-    )
-    currentWriterContext._changeTrackingLastVersion = () =>
-      Some(changeTrackingLastVersion(currentWriterContext.isCtAppendModeEnabled))
-    currentJdbcContext._ctCurrentVersion = Some(
-      ctCurrentVersion(currentWriterContext.isCtAppendModeEnabled)
-    )
-    currentJdbcContext._changeTrackingLastVersion = () =>
-      Some(changeTrackingLastVersion(currentWriterContext.isCtAppendModeEnabled))
+    currentWriterContext._ctCurrentVersion = Some(ctCurrentVersion)
+    currentWriterContext._changeTrackingLastVersion = () => Some(changeTrackingLastVersion)
+    currentJdbcContext._ctCurrentVersion = Some(ctCurrentVersion)
+    currentJdbcContext._changeTrackingLastVersion = () => Some(changeTrackingLastVersion)
     if (isDeltaTableExists) {
       require(
-        changeTrackingLastVersion(currentWriterContext.isCtAppendModeEnabled) >= ctMinValidVersion,
+        changeTrackingLastVersion >= ctMinValidVersion,
         "Invalid Change Tracking version. Client table must be reinitialized."
       )
     }
   }
 
-  private def getCtChangesQuery(ctAppendMode: Boolean): String = {
-    if (ctAppendMode) ctChangesAppendQuery else ctChangesQuery
+  private def getCtChangesQuery: String = {
+    if (config.isCtAppendModeEnabled) ctAppendChangesQuery else ctChangesQuery
+  }
+
+  private def getChangeTrackingLastVersion: BigInt = {
+    if (config.isCtAppendModeEnabled) ctAppendDeltaVersion else ctDeltaVersion
   }
 
 }

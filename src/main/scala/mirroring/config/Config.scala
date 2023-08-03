@@ -178,6 +178,9 @@ case class Config(
       s"(${_query}) as subq"
     }
 
+  val isCtAppendModeEnabled: Boolean =
+    if (isChangeTrackingEnabled && mode == "append") true else false
+
   def getDataframeBuilderContext: DataframeBuilderContext = {
     DataframeBuilderContext(
       targetTableName = targetTableName,
@@ -216,7 +219,7 @@ case class Config(
       _parentKey = parent_key,
       _whereClause = whereClause.toString,
       _changeTrackingLastVersion = () => None,
-      _isCtAppendModeEnabled = if (isChangeTrackingEnabled && mode == "append") true else false
+      _isCtAppendModeEnabled = isCtAppendModeEnabled
     )
   }
 
