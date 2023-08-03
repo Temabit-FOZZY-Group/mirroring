@@ -129,10 +129,10 @@ class MirroringManager {
   }
 
   private def getWriteService(config: Config, writerContext: WriterContext) = {
-    if (config.isCustomChangeTrackingEnabled) {
-      new CustomChangeTrackingService(writerContext) with SparkContextTrait
-    } else if (config.isChangeTrackingEnabled && config.mode == "append") {
+    if (config.isChangeTrackingEnabled && config.mode == "append") {
       new ChangeTrackingAppendService(writerContext) with SparkContextTrait
+    } else if (config.isCustomChangeTrackingEnabled) {
+      new CustomChangeTrackingService(writerContext) with SparkContextTrait
     } else if (config.isChangeTrackingEnabled) {
       new ChangeTrackingService(writerContext) with SparkContextTrait
     } else if (config.useMerge) {
