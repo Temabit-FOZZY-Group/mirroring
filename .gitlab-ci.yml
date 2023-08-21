@@ -1,0 +1,53 @@
+default:
+  tags:
+    - docker
+
+variables:
+  JAVA_VERSION: "8u332"
+  SCALA_VERSION: "2.12.15"
+  SBT_VERSION: "1.6.2"
+  SBT_OPTS: "-Dsbt.global.base=sbt-cache/.sbtboot -Dsbt.boot.directory=sbt-cache/.boot -Dsbt.ivy.home=sbt-cache/.ivy"
+  JAVA_OPTS: "-Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8"
+  JVM_OPTS: "-Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8"
+  SPARK_LOCAL_IP: "localhost"
+
+image: "sbtscala/scala-sbt:${JAVA_VERSION}_${SBT_VERSION}_${SCALA_VERSION}"
+
+cache:
+  key: "$CI_BUILD_REF_NAME" # contains either the branch or the tag, so it's caching per branch
+  untracked: true
+  paths:
+    - "sbt-cache/.ivy.cache"
+    - "sbt-cache/.boot"
+    - "sbt-cache/.sbtboot"
+    - "sbt-cache/target"
+
+stages:
+  - test
+  - lint
+  - release
+
+test:
+  stage: test
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  script:
+    - sbt coverage test
+
+lint:
+  stage: lint
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  script:
+    - sbt scalafmtSbtCheck scalafmtCheck test:scalafmtCheck
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      sbt assembly
+      release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG
+
